@@ -1,0 +1,68 @@
+# Domyślna konfiguracja eksperymentu - tryb warunkowany (StarGAN).
+# Model_GAN_Warunkowany: jeden generator G(x, c) obsługuje N artystów.
+# Schemat zgodny z sekcją *Data Models* dokumentu design.md.
+# Wymagania: 8.1 (format YAML), 8.6 (model.mode + model.artists).
+
+seed: 42
+experiment_name: "default_conditional"
+
+dataset:
+  artists:
+    beatles: "data/midi/beatles/"
+    queen: "data/midi/queen/"
+    abba: "data/midi/abba/"
+  min_files_per_artist: 30
+  max_duration_s: 1800
+  min_duration_s: 5
+
+features:
+  pitch_range: [24, 108]      # C1..C8
+  interval_window: 12
+  pianoroll_steps_per_beat: 4
+
+model:
+  mode: "conditional"          # "conditional" | "per_artist"
+  artists: ["beatles", "queen", "abba"]   # wymagane dla "conditional"
+  reference_artist: null        # tylko dla "per_artist"
+  pianoroll:
+    window_steps: 64
+    pitch_range: [24, 108]
+  generator:
+    n_residual_blocks: 6
+  discriminator:
+    type: "patchgan"
+    patch_size: 70
+  loss_weights:
+    cls: 1.0
+    cycle: 10.0
+    identity: 5.0
+
+training:
+  epochs: 200
+  batch_size: 16
+  learning_rate: 0.0002
+  optimizer: "adam"
+  beta1: 0.5
+  beta2: 0.999
+  device: "cuda"               # "cuda" | "cpu"
+
+ga:
+  population_size: 100
+  generations: 200
+  tournament_size: 3
+  crossover: "uniform"          # "single_point" | "uniform"
+  mutation_sigma:
+    transpose_semitones: 1.5
+    rhythm_density_factor: 0.1
+    note_duration_factor: 0.1
+    velocity_offset: 5.0
+  elitism_k: 2
+  fitness_metric: "euclidean"   # "euclidean" | "mahalanobis"
+  stagnation_generations: 30
+
+evaluation:
+  significance_alpha: 0.05
+  min_pairs_for_test: 10
+  plot_format: "pdf"             # "pdf" | "eps"
+  soundfont: "soundfonts/FluidR3_GM.sf2"
+  clip_seconds: 15

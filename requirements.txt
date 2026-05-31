@@ -1,0 +1,29 @@
+# Zależności Systemu modelowania stylu artystycznego muzyków.
+# Dokładne wersje (pinned) zgodnie z Wymaganiem 8.5 (reprodukowalność eksperymentów).
+# Python >= 3.10
+
+# --- Uczenie głębokie ---
+torch==2.2.2                # PyTorch >= 2.0 - framework Modelu_GAN (StarGAN / CycleGAN)
+
+# --- Obliczenia numeryczne i statystyka ---
+numpy==1.26.4               # macierze pianoroll, RNG algorytmu genetycznego
+scipy==1.13.1               # testy statystyczne (ttest_rel, wilcoxon), odległość Mahalanobisa
+
+# --- Obsługa MIDI ---
+mido==1.3.2                 # parsing niskopoziomowy SMF (Parser_MIDI / Pretty_Printer_MIDI)
+pretty_midi==0.2.10         # analiza wysokopoziomowa tempo / tonacja
+
+# --- Konfiguracja i logowanie ---
+structlog==24.1.0           # logowanie strukturalne JSON-lines (Wymaganie 8.4)
+PyYAML==6.0.1               # plik konfiguracyjny YAML (Wymaganie 8.1)
+
+# --- Wizualizacja i synteza audio ---
+matplotlib==3.8.4           # wykresy porównawcze PDF/EPS (Wymaganie 6.6)
+pyFluidSynth==1.3.3         # binding FluidSynth - rendering WAV (Wymaganie 7.2)
+
+# --- Akwizycja danych ---
+yt-dlp==2024.8.6            # pobieranie fragmentów audio z YouTube (Wymaganie 1.6)
+
+# --- Testy ---
+pytest==8.2.2               # framework testowy
+hypothesis==6.103.2         # property-based testing (Wymaganie 11)

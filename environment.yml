@@ -1,0 +1,33 @@
+# Środowisko Conda dla Systemu modelowania stylu artystycznego muzyków.
+# Dokładne wersje zależności zgodnie z Wymaganiem 8.5 (reprodukowalność).
+# Utworzenie środowiska:  conda env create -f environment.yml
+# Aktywacja:              conda activate musicians-style
+name: musicians-style
+channels:
+  - pytorch
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.10
+  - pip=24.0
+  # --- Uczenie głębokie (PyTorch >= 2.0) ---
+  - pytorch=2.2.2
+  # --- Obliczenia numeryczne i statystyka ---
+  - numpy=1.26.4
+  - scipy=1.13.1
+  # --- Wizualizacja ---
+  - matplotlib=3.8.4
+  # --- Konfiguracja i logowanie ---
+  - pyyaml=6.0.1
+  # --- Synteza audio ---
+  - fluidsynth=2.3.4          # natywny binarka FluidSynth (Wymaganie 7.2)
+  # --- Testy ---
+  - pytest=8.2.2
+  - hypothesis=6.103.2
+  # Pakiety dostępne wyłącznie / wygodniej przez pip
+  - pip:
+      - mido==1.3.2
+      - pretty_midi==0.2.10
+      - structlog==24.1.0
+      - pyFluidSynth==1.3.3   # binding Pythona do FluidSynth
+      - yt-dlp==2024.8.6

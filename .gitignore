@@ -1,0 +1,49 @@
+# --- Katalogi wynikowe eksperymentów (Wymaganie 8.2) ---
+experiments/
+!experiments/.gitkeep
+
+# --- Punkty_Kontrolne modeli (Wymaganie 3.4) ---
+*.pt
+*.pth
+*.ckpt
+
+# --- Artefakty Pythona ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# --- Środowiska wirtualne ---
+.venv/
+venv/
+env/
+.conda/
+
+# --- Cache narzędzi ---
+.pytest_cache/
+.hypothesis/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# --- IDE / edytory ---
+.vscode/
+.idea/
+
+# --- Dane wygenerowane (audio renderowane przez FluidSynth) ---
+*.wav
+
+# --- System plików ---
+.DS_Store
+Thumbs.db
+
+# custom
+Literatura/
+logseq_pages/
+Literatura - arkusz.csv
