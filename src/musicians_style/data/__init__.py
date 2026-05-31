@@ -3,9 +3,15 @@
 from .acquirer import (
     LOCAL_SOURCE,
     MAX_DURATION_S,
+    MAX_YOUTUBE_CLIP_S,
     MIN_DURATION_S,
     MIN_RECOMMENDED_FILES,
+    YOUTUBE_SOURCE,
+    AudioToMidiConverter,
     DatasetAcquirer,
+    YoutubeAudioDownloader,
+    YoutubeClip,
+    YtDlpAudioDownloader,
 )
 from .manifest import (
     FileEntry,
@@ -19,9 +25,15 @@ from .manifest import (
 __all__ = [
     "DatasetAcquirer",
     "LOCAL_SOURCE",
+    "YOUTUBE_SOURCE",
     "MAX_DURATION_S",
+    "MAX_YOUTUBE_CLIP_S",
     "MIN_DURATION_S",
     "MIN_RECOMMENDED_FILES",
+    "AudioToMidiConverter",
+    "YoutubeAudioDownloader",
+    "YoutubeClip",
+    "YtDlpAudioDownloader",
     "FileEntry",
     "Manifest",
     "compute_sha256",

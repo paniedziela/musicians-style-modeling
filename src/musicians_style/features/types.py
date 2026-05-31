@@ -242,6 +242,59 @@ class FeatureVector:
             )
         )
 
+    @classmethod
+    def from_array(cls, array: Any, key: str = "C major") -> "FeatureVector":
+        """Rekonstruuje *Wektor_Cech* z reprezentacji wektorowej (odwrotność :meth:`as_array`).
+
+        Metoda jest dokładną odwrotnością :meth:`as_array` w zakresie cech
+        liczbowych - rozdziela jednowymiarową tablicę o długości
+        :data:`FEATURE_VECTOR_LENGTH` na poszczególne pola, zachowując ten sam
+        układ indeksów (tempo, histogram klas wysokości, histogram interwałów,
+        gęstość nut, średnia/odchylenie długości nuty, proporcja pauz).
+
+        Pole kategoryczne ``key`` jest **wyłączone** z reprezentacji wektorowej
+        (patrz uzasadnienie przy :meth:`as_array`), dlatego musi zostać podane
+        osobno; domyślnie przyjmowana jest neutralna tonacja ``"C major"``.
+        Metoda jest wykorzystywana m.in. przez
+        :meth:`~musicians_style.features.extractor.FeatureExtractor.extract_dataset`
+        do zbudowania agregowanych *Wektorów_Cech* (średnia, mediana, odchylenie
+        standardowe) z kolumnowych statystyk macierzy cech (Wymaganie 2.6).
+
+        Args:
+            array: jednowymiarowa tablica cech liczbowych o długości
+                :data:`FEATURE_VECTOR_LENGTH` (układ jak w :meth:`as_array`).
+            key: etykieta tonacji przypisywana rekonstruowanemu wektorowi
+                (cecha kategoryczna nieobecna w ``array``).
+
+        Returns:
+            :class:`FeatureVector` o polach liczbowych odtworzonych z ``array``.
+
+        Raises:
+            ValueError: gdy ``array`` nie jest jednowymiarowa lub ma długość inną
+                niż :data:`FEATURE_VECTOR_LENGTH`.
+        """
+        arr = np.asarray(array, dtype=np.float64)
+        if arr.shape != (FEATURE_VECTOR_LENGTH,):
+            raise ValueError(
+                f"from_array oczekuje tablicy o kształcie ({FEATURE_VECTOR_LENGTH},), "
+                f"otrzymano {arr.shape}."
+            )
+
+        pitch_start = 1
+        pitch_end = pitch_start + PITCH_CLASS_BINS
+        interval_end = pitch_end + INTERVAL_HISTOGRAM_BINS
+
+        return cls(
+            tempo_bpm=float(arr[0]),
+            key=key,
+            pitch_class_histogram=arr[pitch_start:pitch_end],
+            interval_histogram=arr[pitch_end:interval_end],
+            note_density_per_s=float(arr[interval_end]),
+            mean_note_duration_s=float(arr[interval_end + 1]),
+            std_note_duration_s=float(arr[interval_end + 2]),
+            rest_ratio=float(arr[interval_end + 3]),
+        )
+
     def __eq__(self, other: object) -> bool:
         """Równość wartościowa: pola skalarne dokładnie, tablice element-wise.
 

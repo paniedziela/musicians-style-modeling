@@ -48,22 +48,38 @@ Determinizm (Wymaganie 2.4)
 Wszystkie operacje są czysto numeryczne i pozbawione zewnętrznego stanu, dlatego
 wielokrotne wywołanie :meth:`FeatureExtractor.extract` dla tej samej
 ``InternalRepr`` zwraca bit-identyczny *Wektor_Cech* (*Property 2*, zadanie 3.3).
+
+Agregacja zbioru (Wymaganie 2.6)
+--------------------------------
+:meth:`FeatureExtractor.extract_dataset` parsuje każdy plik *Manifestu_Zbioru*,
+wyznacza jego *Wektor_Cech* i oblicza statystyki kolumnowe (średnia, mediana,
+odchylenie standardowe) oraz macierz kowariancji cech. Macierz kowariancji jest
+wykorzystywana w odległości Mahalanobisa (*Funkcja_Dopasowania* - Wymaganie 4.3
+oraz ewaluacja obiektywna - Wymaganie 6.1-6.2). Pole kategoryczne ``key`` jest
+agregowane jako tonacja dominująca (mean/median) lub neutralny placeholder
+(std) - szczegóły w docstringu metody.
 """
 
 from __future__ import annotations
 
 import math
+from collections import Counter
 from pathlib import Path
 
 import numpy as np
 
-from musicians_style.features.constants import NEUTRAL_FEATURE_VECTOR
+from musicians_style.data.manifest import Manifest
+from musicians_style.errors import EmptyDatasetError, MidiValidationError
+from musicians_style.features.constants import NEUTRAL_FEATURE_VECTOR, NEUTRAL_KEY
 from musicians_style.features.types import (
+    FEATURE_VECTOR_LENGTH,
     INTERVAL_HISTOGRAM_BINS,
     PITCH_CLASS_BINS,
+    AggregatedFeatures,
     FeatureVector,
 )
 from musicians_style.logging import get_logger
+from musicians_style.midi.parser import MidiParser
 from musicians_style.midi.types import InternalRepr
 
 __all__ = ["FeatureExtractor"]
@@ -119,11 +135,19 @@ class FeatureExtractor:
     :meth:`extract` jest czysta i deterministyczna (Wymaganie 2.4).
     """
 
-    def __init__(self) -> None:
+    def __init__(self, parser: MidiParser | None = None) -> None:
+        """Inicjalizuje *Ekstraktor_Cech*.
+
+        Args:
+            parser: instancja :class:`~musicians_style.midi.parser.MidiParser`
+                wykorzystywana przez :meth:`extract_dataset` do wczytania plików
+                MIDI z *Manifestu_Zbioru*. Gdy ``None``, tworzona jest domyślna
+                instancja (wstrzyknięcie ułatwia testy izolowane).
+        """
         self._log = get_logger("feature_extractor")
+        self._parser = parser if parser is not None else MidiParser()
 
     # -- API publiczne -------------------------------------------------------
-
     def extract(
         self, repr_: InternalRepr, *, source: Path | str | None = None
     ) -> FeatureVector:
@@ -164,6 +188,168 @@ class FeatureExtractor:
                 problem=repr(exc),
             )
             return NEUTRAL_FEATURE_VECTOR
+
+    def extract_dataset(
+        self, manifest: Manifest, root: Path | str | None = None
+    ) -> AggregatedFeatures:
+        """Agreguje *Wektory_Cech* całego *Zbioru_Stylu* (Wymaganie 2.6).
+
+        Dla każdego pliku z *Manifestu_Zbioru* parsuje MIDI, wyznacza
+        *Wektor_Cech* metodą :meth:`extract`, a następnie układa numeryczne
+        reprezentacje (:meth:`FeatureVector.as_array`) w macierz
+        ``[n_plików, FEATURE_VECTOR_LENGTH]`` i oblicza statystyki kolumnowe:
+
+        * **mean** - *Wektor_Cech* zbudowany ze średnich poszczególnych cech,
+        * **median** - *Wektor_Cech* z median poszczególnych cech,
+        * **std** - *Wektor_Cech* z odchyleń standardowych (populacyjnych,
+          ``ddof=0``) poszczególnych cech,
+        * **covariance** - macierz kowariancji cech o kształcie
+          ``[FEATURE_VECTOR_LENGTH, FEATURE_VECTOR_LENGTH]`` wykorzystywana w
+          odległości Mahalanobisa (*Funkcja_Dopasowania* - Wymaganie 4.3; oraz
+          ewaluacja obiektywna - Wymaganie 6.1-6.2).
+
+        Konwencja pola kategorycznego ``key``
+        --------------------------------------
+        Cecha ``key`` (tonacja) jest **kategoryczna** i nie podlega uśrednianiu
+        ani liczeniu mediany/odchylenia (patrz uzasadnienie przy
+        :meth:`FeatureVector.as_array`). Przyjęto następującą konwencję:
+
+        * ``mean.key`` oraz ``median.key`` - **tonacja dominująca** zbioru
+          (najczęściej występująca etykieta ``key`` wśród plików; przy remisie
+          decyduje porządek alfabetyczny dla determinizmu),
+        * ``std.key`` - placeholder :data:`~musicians_style.features.constants.NEUTRAL_KEY`
+          (``"C major"``), gdyż odchylenie standardowe tonacji nie ma sensu
+          muzycznego.
+
+        Rozwiązywanie ścieżek (``root``)
+        --------------------------------
+        Pola ``FileEntry.path`` w *Manifeście* są zapisywane **względem katalogu
+        zbioru** (zob. ``DatasetAcquirer._relative_path``). Aby je rozwiązać,
+        metoda przyjmuje jawny parametr ``root`` wskazujący katalog zbioru. Gdy
+        ``root`` jest ``None``, ścieżki rozwiązywane są względem bieżącego
+        katalogu roboczego (przydatne, gdy ``path`` jest bezwzględna).
+
+        Przypadek pojedynczego pliku
+        ----------------------------
+        Dla zbioru o liczności 1 macierz kowariancji jest nieokreślona
+        (``np.cov`` zwróciłby ``NaN``), dlatego zwracana jest **macierz zerowa**
+        ``[FEATURE_VECTOR_LENGTH, FEATURE_VECTOR_LENGTH]`` - neutralny, skończony
+        substytut zachowujący kontrakt :class:`AggregatedFeatures`.
+
+        Args:
+            manifest: *Manifest_Zbioru* z listą plików do zagregowania.
+            root: katalog bazowy do rozwiązania względnych ścieżek
+                ``FileEntry.path``; gdy ``None``, używany jest bieżący katalog.
+
+        Returns:
+            :class:`AggregatedFeatures` z polami ``mean``, ``median``, ``std`` i
+            ``covariance``.
+
+        Raises:
+            EmptyDatasetError: gdy *Manifest* nie zawiera żadnych plików
+                (Wymaganie 1.5) - agregacja pustego zbioru jest niezdefiniowana.
+        """
+        if not manifest.files:
+            reason = (
+                f"Manifest artysty '{manifest.artist_id}' nie zawiera plików - "
+                "nie można obliczyć agregowanego Wektora_Cech (Wymaganie 2.6)."
+            )
+            self._log.error("empty dataset aggregation", reason=reason)
+            raise EmptyDatasetError(reason)
+
+        base = Path(root) if root is not None else None
+
+        feature_arrays: list[np.ndarray] = []
+        keys: list[str] = []
+        for entry in manifest.files:
+            file_path = base / entry.path if base is not None else Path(entry.path)
+            feature_vector = self._extract_file(file_path)
+            feature_arrays.append(feature_vector.as_array())
+            keys.append(feature_vector.key)
+
+        # Macierz cech [n_plików, FEATURE_VECTOR_LENGTH].
+        matrix = np.vstack(feature_arrays)
+
+        mean_array = matrix.mean(axis=0)
+        median_array = np.median(matrix, axis=0)
+        std_array = matrix.std(axis=0, ddof=0)
+        covariance = self._covariance(matrix)
+
+        dominant_key = self._dominant_key(keys)
+
+        self._log.info(
+            "agregacja Wektorów_Cech zbioru zakończona",
+            artist_id=manifest.artist_id,
+            n_files=len(feature_arrays),
+            dominant_key=dominant_key,
+        )
+
+        return AggregatedFeatures(
+            mean=FeatureVector.from_array(mean_array, key=dominant_key),
+            median=FeatureVector.from_array(median_array, key=dominant_key),
+            std=FeatureVector.from_array(std_array, key=NEUTRAL_KEY),
+            covariance=covariance,
+        )
+
+    # -- agregacja zbioru: pomocnicze ---------------------------------------
+
+    def _extract_file(self, path: Path) -> FeatureVector:
+        """Parsuje plik MIDI i zwraca jego *Wektor_Cech*.
+
+        Gdy plik jest niezgodny ze SMF (:class:`MidiValidationError`), fakt ten
+        jest odnotowywany w logu, a zwracany jest
+        :data:`NEUTRAL_FEATURE_VECTOR`, dzięki czemu pojedynczy uszkodzony plik
+        nie przerywa agregacji całego zbioru (spójnie z Wymaganiem 2.8 oraz
+        defensywnym zachowaniem :meth:`extract`).
+        """
+        try:
+            repr_ = self._parser.parse(path)
+        except MidiValidationError as exc:
+            self._log.warning(
+                "plik pominięty podczas agregacji - niezgodny ze SMF; "
+                "użyto Wektora_Cech neutralnego",
+                file=str(path),
+                problem=exc.message,
+            )
+            return NEUTRAL_FEATURE_VECTOR
+        return self.extract(repr_, source=path)
+
+    @staticmethod
+    def _covariance(matrix: np.ndarray) -> np.ndarray:
+        """Macierz kowariancji cech ``[FEATURE_VECTOR_LENGTH × FEATURE_VECTOR_LENGTH]``.
+
+        Dla pojedynczej próbki (jeden plik) kowariancja jest nieokreślona
+        (``np.cov`` zwraca ``NaN``), dlatego zwracana jest macierz zerowa -
+        skończona i neutralna (forma kwadratowa Mahalanobisa wyniesie 0).
+        ``np.cov`` operuje na zmiennych w wierszach, więc macierz cech
+        (próbki w wierszach) jest transponowana przez ``rowvar=False``.
+        """
+        n_samples = matrix.shape[0]
+        if n_samples < 2:
+            return np.zeros(
+                (FEATURE_VECTOR_LENGTH, FEATURE_VECTOR_LENGTH), dtype=np.float64
+            )
+        cov = np.cov(matrix, rowvar=False)
+        # Dla pewności zwracamy tablicę 2-D o właściwym kształcie.
+        return np.asarray(cov, dtype=np.float64).reshape(
+            FEATURE_VECTOR_LENGTH, FEATURE_VECTOR_LENGTH
+        )
+
+    @staticmethod
+    def _dominant_key(keys: list[str]) -> str:
+        """Zwraca tonację dominującą (najczęstszą etykietę ``key``) w zbiorze.
+
+        Przy remisie liczności wybierana jest etykieta najmniejsza alfabetycznie,
+        co gwarantuje determinizm (Wymaganie 2.4). Pusta lista (sytuacja
+        niemożliwa po walidacji niepustego *Manifestu*) zwraca
+        :data:`NEUTRAL_KEY`.
+        """
+        if not keys:
+            return NEUTRAL_KEY
+        counts = Counter(keys)
+        max_count = max(counts.values())
+        tied = [key for key, count in counts.items() if count == max_count]
+        return min(tied)
 
     # -- rdzeń ekstrakcji ----------------------------------------------------
 
