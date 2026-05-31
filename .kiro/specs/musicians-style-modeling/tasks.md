@@ -358,7 +358,7 @@ Każde zadanie property-based testowe odwołuje się do konkretnej właściwośc
     - _Requirements: 6.3, 6.4, 6.5_
 
 - [ ] 12. CLI i integracja end-to-end
-  - [ ] 12.1 Implementacja CLI z komendami acquire, train, infer, evaluate
+  - [x] 12.1 Implementacja CLI z komendami acquire, train, infer, evaluate
     - W `src/musicians_style/cli.py` zaimplementować z `argparse` lub `click` komendy: `midi-style acquire --config CONFIG`, `midi-style train --config CONFIG`, `midi-style infer --target_artist NAME --checkpoint CKPT --input X.mid --output Y.mid [--seed S]`, `midi-style evaluate --pairs PAIRS_DIR --style MANIFEST`
     - Komenda `infer` SHALL wymagać obowiązkowego parametru `target_artist` niezależnie od trybu Punktu_Kontrolnego
     - Kody wyjścia: 0 (sukces), 1 (uncaught), 2 (walidacja wejścia/konfiguracji), 3 (zasoby/OOM)
