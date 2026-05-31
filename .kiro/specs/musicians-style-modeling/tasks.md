@@ -59,14 +59,14 @@ Każde zadanie property-based testowe odwołuje się do konkretnej właściwośc
     - Zachowywać deterministyczną kolejność zdarzeń z `event_key`, kodować `tempo`, `time_signature`, `key_signature`, `program_change` jako odpowiednie meta-zdarzenia
     - _Requirements: 5.2, 5.3_
 
-  - [ ]* 2.4 Property test P1 - round-trip parsera i pretty printera
+  - [x]* 2.4 Property test P1 - round-trip parsera i pretty printera
     - **Property 1: Round-trip parsera i pretty printera MIDI**
     - **Validates: Requirements 5.4, 11.1**
     - W `tests/property/test_midi_roundtrip.py` zaimplementować strategię `midi_internal_repr` (sekcja *Strategie generatorów Hypothesis*)
     - Test: `parse(write(r))` zwraca `r'` semantycznie równoważne `r` (ta sama lista zdarzeń nutowych z dokładnością do kolejności zdarzeń o identycznym znaczniku czasu)
     - `@settings(max_examples=200, deadline=None)`
 
-  - [ ]* 2.5 Property test P13 - niepusty opis błędu walidacji MIDI
+  - [x]* 2.5 Property test P13 - niepusty opis błędu walidacji MIDI
     - **Property 13: Niepusty opis błędu walidacji MIDI**
     - **Validates: Requirements 5.5**
     - W `tests/property/test_midi_validation.py` zaimplementować strategię `malformed_midi_bytes = st.binary(min_size=1, max_size=4096)`
@@ -100,25 +100,25 @@ Każde zadanie property-based testowe odwołuje się do konkretnej właściwośc
     - W przypadku częściowego błędu numerycznego (Wymaganie 2.8) logować nazwę pliku, problem i częściowe wartości; zwracać częściowy wektor
     - _Requirements: 2.1, 2.2, 2.5, 2.7, 2.8_
 
-  - [ ]* 3.3 Property test P2 - idempotencja Ekstraktora_Cech
+  - [x]* 3.3 Property test P2 - idempotencja Ekstraktora_Cech
     - **Property 2: Idempotencja Ekstraktora_Cech**
     - **Validates: Requirements 2.4, 11.2**
     - W `tests/property/test_features_idempotence.py` testować, że `extract(r) == extract(r)` bit-identycznie dla losowo generowanych `InternalRepr`
     - `@settings(max_examples=200, deadline=None)`
 
-  - [ ]* 3.4 Property test P3 - walidność Wektora_Cech
+  - [x]* 3.4 Property test P3 - walidność Wektora_Cech
     - **Property 3: Walidność Wektora_Cech**
     - **Validates: Requirements 2.1, 2.3**
     - W `tests/property/test_features_validity.py` testować niezmienniki: `tempo_bpm > 0`, `rest_ratio ∈ [0, 1]`, `sum(pitch_class_histogram) == 1 ± 1e-9`, `len(extract(r).as_array())` jest stała niezależnie od długości wejścia
     - `@settings(max_examples=200, deadline=None)`
 
-  - [ ]* 3.5 Property test P4 - wektor neutralny dla pustych plików
+  - [x]* 3.5 Property test P4 - wektor neutralny dla pustych plików
     - **Property 4: Wektor neutralny dla pustych plików MIDI**
     - **Validates: Requirements 2.7, 11.8**
     - W `tests/property/test_features_empty.py` używając `midi_internal_repr(max_notes=0)` weryfikować, że `extract(r) == NEUTRAL_FEATURE_VECTOR` bez zgłaszania wyjątku
     - `@settings(max_examples=100, deadline=None)`
 
-  - [ ]* 3.6 Property test P6 - równoważność transpozycji
+  - [x]* 3.6 Property test P6 - równoważność transpozycji
     - **Property 6: Równoważność transpozycji**
     - **Validates: Requirements 11.3**
     - W `tests/property/test_features_transpose.py` dla losowych `InternalRepr` i `k ∈ [-12, +12]` weryfikować, że `extract(transpose(r, k)).pitch_class_histogram` jest cyklicznym przesunięciem o `k mod 12` pozycji
@@ -192,25 +192,25 @@ Każde zadanie property-based testowe odwołuje się do konkretnej właściwośc
     - Logowanie `(best_fitness, mean_fitness, worst_fitness, best_genome)` w `ga.jsonl` w każdym pokoleniu
     - _Requirements: 4.4, 4.5, 4.6, 4.7_
 
-  - [ ]* 6.5 Property test P5 - niezmienność Ekstraktora_Cech na transformację tożsamościową
+  - [x]* 6.5 Property test P5 - niezmienność Ekstraktora_Cech na transformację tożsamościową
     - **Property 5: Niezmienność Ekstraktora_Cech na transformację tożsamościową**
     - **Validates: Requirements 11.7**
     - W `tests/property/test_features_identity.py` weryfikować, że `extract(apply_transformation(r, IDENTITY_GENOME)) == extract(r)` bit-identycznie
     - `@settings(max_examples=200, deadline=None)`
 
-  - [ ]* 6.6 Property test P7 - determinizm Algorytmu_Genetycznego
+  - [x]* 6.6 Property test P7 - determinizm Algorytmu_Genetycznego
     - **Property 7: Determinizm Algorytmu_Genetycznego**
     - **Validates: Requirements 4.4, 11.4**
     - W `tests/property/test_ga_determinism.py` dla losowych `seed × small_dataset × ga_config` weryfikować, że dwa wywołania `ga.run(x, D, c, seed=s)` zwracają bit-identyczne końcowe populacje i historie dopasowania
     - `@settings(max_examples=50, deadline=None)` (mniej iteracji ze względu na koszt)
 
-  - [ ]* 6.7 Property test P8 - monotoniczność elitaryzmu
+  - [x]* 6.7 Property test P8 - monotoniczność elitaryzmu
     - **Property 8: Monotoniczność Algorytmu_Genetycznego w trybie elitaryzmu**
     - **Validates: Requirements 4.7, 11.5**
     - W `tests/property/test_ga_elitism.py` z `elitism_k ≥ 1` weryfikować dla każdej pary `(n, n+1)`, że `best_fitness[n+1] >= best_fitness[n]`
     - `@settings(max_examples=50, deadline=None)`
 
-  - [ ]* 6.8 Property test P9 - operatory zachowują liczność populacji
+  - [x]* 6.8 Property test P9 - operatory zachowują liczność populacji
     - **Property 9: Operatory genetyczne zachowują liczność populacji**
     - **Validates: Requirements 4.1, 4.2**
     - W `tests/property/test_ga_operators.py` dla losowej `population_strategy` o rozmiarze N i konfiguracji operatorów weryfikować, że `next_generation(P, config).size == N` oraz że każdy gen mieści się w zadeklarowanych zakresach
@@ -346,7 +346,7 @@ Każde zadanie property-based testowe odwołuje się do konkretnej właściwośc
     - Metoda `analyze_responses(responses)` obliczająca średnią, odchylenie standardowe, przedziały ufności (bez przycinania do skali [1, 5]); test istotności gdy n_respondents ≥ 20
     - _Requirements: 7.4, 7.5_
 
-  - [ ]* 11.6 Property test P10 - walidność funkcji odległości
+  - [x]* 11.6 Property test P10 - walidność funkcji odległości
     - **Property 10: Walidność funkcji odległości w ewaluacji**
     - **Validates: Requirements 6.1, 6.2**
     - W `tests/property/test_distance_validity.py` strategia `feature_vector_strategy` generująca losowe wektory cech
