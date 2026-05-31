@@ -67,7 +67,7 @@ from typing import Any
 
 from mido import MidiFile, MidiTrack, Message, MetaMessage
 
-from .types import InternalRepr, MetaEvent, NoteEvent
+from .types import InternalRepr, MetaEvent, NoteEvent, event_key
 
 __all__ = ["MidiPrettyPrinter"]
 
@@ -207,7 +207,11 @@ class MidiPrettyPrinter:
             collected.append((key, message))
             seq += 1
 
-        for note in notes:
+        # Deterministyczna kolejność emitowania nut wg event_key
+        # (lex po (tick, channel, pitch, velocity)) - niezależnie od kolejności
+        # wejściowej krotki ``notes``. Gwarantuje powtarzalny strumień zdarzeń
+        # (Wymaganie 5.3) i jest spójne z porządkiem stosowanym przez parser.
+        for note in sorted(notes, key=event_key):
             on_message = Message(
                 "note_on",
                 channel=note.channel,

@@ -8,14 +8,25 @@ The Python environment for this project is already configured. Do NOT recreate i
 
 ## Interpreter
 
-Use the project virtualenv interpreter directly via its absolute path:
-
-```
-.venv\Scripts\python.exe
-```
-
 - Python 3.10.20 (conda-based venv; `home = .venv`).
-- The shell is **PowerShell**. Use `;` as the command separator (not `&` or `&&`). Invoke the interpreter with the call operator, e.g. `& '.venv\Scripts\python.exe' -m pytest`.
+- The shell is **PowerShell**. Use `;` as the command separator (not `&` or `&&`).
+
+**Preferred: activate the venv first, then use `python` / `pytest` directly.**
+
+```
+.venv\Scripts\Activate.ps1
+python --version
+```
+
+Activation persists for the rest of an interactive terminal session, so commands stay clean and readable (`python -m pytest`, `pip ...`). You (the user) do not need to pre-activate; the agent activates it at the start of a session when needed.
+
+**Fallback: when the venv is not active** (a fresh terminal, or a background/`start`ed process, begins unactivated), call the interpreter by its bare absolute path:
+
+```
+.venv\Scripts\python.exe -m pytest
+```
+
+No quotes and no `&` are needed: this path contains no spaces. PowerShell's call operator `&` plus quoting is only required when a command path contains spaces (e.g. `& 'C:\Program Files\...\python.exe'`). It is not a security or trust mechanism, just a quoting artifact, so prefer the bare path for readability.
 
 ## Package install
 
@@ -29,10 +40,16 @@ All dependencies from `requirements.txt` / `pyproject.toml` are present. If a ge
 
 ## Running tests
 
-From the project root `.`:
+From the project root `.`, with the venv active:
 
 ```
-& '.venv\Scripts\python.exe' -m pytest -q
+python -m pytest -q
+```
+
+Or, if the venv is not active, with the bare absolute path:
+
+```
+.venv\Scripts\python.exe -m pytest -q
 ```
 
 `pytest.ini` is the single source of truth for pytest config (`testpaths = tests`, markers `property` and `slow`). As of the last full run, all existing tests pass.
