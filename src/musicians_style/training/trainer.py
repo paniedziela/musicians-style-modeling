@@ -1,4 +1,4 @@
-"""GANTrainer - *Pipeline_Treningu* StarGAN / CycleGAN (zadanie 9.2).
+"""GANTrainer - *Pipeline_Treningu* StarGAN / CycleGAN (zadania 9.2, 9.3, 9.4).
 
 Moduł implementuje :class:`GANTrainer` realizujący trening *Modelu_GAN* w dwóch
 trybach (Wymaganie 3.10):
@@ -10,29 +10,33 @@ trybach (Wymaganie 3.10):
   Wymaganie 3.13): niewarunkowany generator ``G(x)`` i dyskryminator z samą
   głowicą ``D_src``.
 
-Zakres zadania 9.2
-------------------
-Niniejszy moduł implementuje **wyłącznie** zadanie 9.2:
+Zakres zadań 9.2 - 9.4
+----------------------
+Niniejszy moduł implementuje:
 
-* metodę :meth:`GANTrainer.train` zwracającą ścieżkę do ostatniego
+* (9.2) metodę :meth:`GANTrainer.train` zwracającą ścieżkę do ostatniego
   *Punktu_Kontrolnego* (Wymaganie 3.2),
-* zapis *Punktu_Kontrolnego* po każdej epoce ze wszystkimi polami z sekcji
+* (9.2) zapis *Punktu_Kontrolnego* po każdej epoce ze wszystkimi polami z sekcji
   *Format Punktu_Kontrolnego* dokumentu ``design.md`` (Wymagania 3.4, 3.14),
-* logowanie wartości funkcji strat w każdej iteracji oraz metryk walidacyjnych
-  po każdej epoce do pliku ``logs/train.jsonl`` (Wymaganie 3.8),
-* deterministyczną inicjalizację generatorów liczb pseudolosowych z parametru
-  ``seed`` (Wymagania 3.6, 3.7),
-* selektywne ostrzeżenia o niewystarczającej liczności plików per-artysta w
-  trybie warunkowanym (Wymaganie 3.11).
+* (9.2) logowanie wartości funkcji strat w każdej iteracji oraz metryk
+  walidacyjnych po każdej epoce do pliku ``logs/train.jsonl`` (Wymaganie 3.8),
+* (9.2) deterministyczną inicjalizację generatorów liczb pseudolosowych z
+  parametru ``seed`` (Wymagania 3.6, 3.7),
+* (9.2) selektywne ostrzeżenia o niewystarczającej liczności plików per-artysta
+  w trybie warunkowanym (Wymaganie 3.11),
+* (9.3) metodę :meth:`GANTrainer.resume` wznawiającą trening z *Punktu_Kontrolnego*
+  (wczytanie ``state_dict`` modeli, optymalizatorów i stanów RNG, kontynuacja od
+  zapisanej epoki, walidacja zgodności ``metadata.mode``; Wymaganie 3.5),
+* (9.4) obsługę błędu braku pamięci GPU: pętla treningu jest owinięta w
+  ``try/except torch.cuda.OutOfMemoryError`` i przy wystąpieniu OOM zgłasza
+  :class:`~musicians_style.errors.GpuOutOfMemoryError` z sugerowaną redukcją
+  ``batch_size`` (Wymaganie 3.9).
 
-Zadania pokrewne realizowane w osobnych krokach planu (9.3 - wznawianie z
-*Punktu_Kontrolnego*, 9.4 - obsługa błędu OOM) **nie** są tu implementowane.
-Klasa jest jednak ustrukturyzowana tak, aby można je było dodać bez przeróbek:
-budowa modeli i optymalizatorów (:meth:`_build_models`,
+Budowa modeli i optymalizatorów (:meth:`_build_models`,
 :meth:`_build_optimizers`) oraz serializacja *Punktu_Kontrolnego*
 (:meth:`_build_checkpoint_dict`, :meth:`_capture_rng_states`) są wydzielone do
-czystych metod pomocniczych, gotowych do ponownego użycia przy wczytywaniu
-stanu.
+czystych metod pomocniczych, ponownie wykorzystywanych przy wczytywaniu stanu
+w :meth:`GANTrainer.resume`.
 
 Determinizm (Wymagania 3.6, 3.7)
 --------------------------------
@@ -63,6 +67,7 @@ from torch.utils.data import DataLoader
 
 from ..config import Config
 from ..data.manifest import Manifest, current_git_commit, utc_now_iso
+from ..errors import GpuOutOfMemoryError
 from ..logging import get_logger
 from ..midi.parser import MidiParser
 from ..midi.pianoroll import Pianoroll
@@ -273,30 +278,169 @@ class GANTrainer:
             seed=int(seed),
         )
 
-        last_checkpoint: Path | None = None
-        for epoch in range(1, epochs + 1):
-            epoch_avg = self._run_epoch(epoch, loader)
-            val_metric = self._validate(loader)
-
-            history["loss_g"].append(epoch_avg.get("loss_g", 0.0))
-            history["loss_d"].append(epoch_avg.get("loss_d", 0.0))
-            history["loss_cls"].append(epoch_avg.get("loss_cls", 0.0))
-            history["loss_cyc"].append(epoch_avg.get("loss_cyc", 0.0))
-            history["val_identity_l1"].append(val_metric)
-
-            self._emit(
-                "INFO",
-                "metryki walidacyjne epoki",
-                epoch=epoch,
-                val_identity_l1=val_metric,
-                loss_g=epoch_avg.get("loss_g", 0.0),
-                loss_d=epoch_avg.get("loss_d", 0.0),
-            )
-
-            last_checkpoint = self._save_checkpoint(epoch, history)
+        last_checkpoint = self._train_epoch_loop(
+            start_epoch=1, end_epoch=epochs, loader=loader, history=history
+        )
 
         assert last_checkpoint is not None  # epochs > 0 gwarantuje zapis
         self._emit("INFO", "zakończono trening", checkpoint=str(last_checkpoint))
+        return last_checkpoint
+
+    def resume(
+        self, checkpoint_path: Path | str, manifest: Manifest | MultiArtistManifest
+    ) -> Path:
+        """Wznawia trening z *Punktu_Kontrolnego* i zwraca ścieżkę ostatniego (Wymaganie 3.5).
+
+        Metoda odtwarza pełny stan treningu zapisany przez :meth:`train` /
+        :meth:`_save_checkpoint`, a następnie kontynuuje naukę **bez ponownej
+        inicjalizacji parametrów** (Wymaganie 3.5):
+
+        #. wczytuje *Punkt_Kontrolny* (``torch.load``) i waliduje zgodność
+           ``metadata.mode`` z trybem trenera (niezgodność → ``ValueError``),
+        #. odtwarza dataset i ``DataLoader`` z przekazanego ``manifest`` (sam
+           *Punkt_Kontrolny* nie przechowuje danych źródłowych - stąd parametr
+           ``manifest``),
+        #. buduje modele i optymalizatory (:meth:`_build_models`,
+           :meth:`_build_optimizers`) i wczytuje do nich ``state_dict``
+           (generator, dyskryminator, oba optymalizatory),
+        #. przywraca stany generatorów liczb pseudolosowych (``torch_cpu``,
+           ``torch_cuda``, ``numpy``, ``python``) zapisane w ``rng_states``,
+        #. kontynuuje pętlę epok od ``checkpoint["epoch"] + 1`` do
+           ``config.training.epochs`` włącznie, zapisując *Punkt_Kontrolny* po
+           każdej kolejnej epoce (z obsługą OOM - Wymaganie 3.9).
+
+        Zachowanie brzegowe: jeżeli zapisana epoka jest już **równa lub większa**
+        niż ``config.training.epochs``, nie ma kolejnych epok do wykonania.
+        Metoda nie trenuje wówczas ani jednej epoki i zwraca ścieżkę
+        przekazanego *Punktu_Kontrolnego* (traktując go jako ostatni dostępny),
+        emitując wpis informacyjny ``"wznowienie bez dodatkowych epok"``.
+
+        Args:
+            checkpoint_path: ścieżka do pliku ``.pt`` *Punktu_Kontrolnego*
+                zapisanego przez :meth:`train`.
+            manifest: *Manifest_Zbioru* (tryb per-artysta) lub
+                :class:`MultiArtistManifest` (tryb warunkowany) opisujący ten sam
+                *Zbiór_Stylu*, na którym prowadzono pierwotny trening. Wymagany do
+                odtworzenia datasetu i ``DataLoader`` - *Punkt_Kontrolny* nie
+                przechowuje danych źródłowych.
+
+        Returns:
+            Ścieżka do ostatniego zapisanego *Punktu_Kontrolnego* (``.pt``). Gdy
+            nie wykonano żadnej dodatkowej epoki - ścieżka ``checkpoint_path``.
+
+        Raises:
+            FileNotFoundError: gdy ``checkpoint_path`` nie istnieje.
+            ValueError: gdy ``metadata.mode`` *Punktu_Kontrolnego* nie zgadza się
+                z trybem trenera lub gdy dataset zbudowany z ``manifest`` jest pusty.
+            GpuOutOfMemoryError: gdy w trakcie wznowionego treningu wystąpi
+                ``torch.cuda.OutOfMemoryError`` (Wymaganie 3.9).
+        """
+        checkpoint_path = Path(checkpoint_path)
+        if not checkpoint_path.exists():
+            raise FileNotFoundError(
+                f"Punkt_Kontrolny nie istnieje: {checkpoint_path}"
+            )
+
+        checkpoint = torch.load(checkpoint_path, map_location=self.device)
+
+        # Walidacja zgodności trybu z metadanymi (Wymaganie 3.5).
+        metadata = checkpoint.get("metadata", {})
+        checkpoint_mode = metadata.get("mode")
+        if checkpoint_mode != self.mode:
+            raise ValueError(
+                "Niezgodność trybu Punktu_Kontrolnego z konfiguracją trenera: "
+                f"Punkt_Kontrolny zapisano w trybie {checkpoint_mode!r}, a trener "
+                f"działa w trybie {self.mode!r}. Wznowienie przerwane."
+            )
+
+        # Odtworzenie datasetu i loadera (Punkt_Kontrolny nie przechowuje danych).
+        dataset = PianorollDataset(
+            manifest,
+            roots=self._roots,
+            pianoroll=self._pianoroll,
+            parser=self._parser,
+        )
+        if len(dataset) == 0:
+            raise ValueError(
+                "Dataset treningowy jest pusty - brak plików w manifeście "
+                "przekazanym do resume()."
+            )
+
+        self.artists = dataset.artists
+        self.num_artists = dataset.num_artists
+        if self.mode == "conditional":
+            self.insufficient_artists = self.check_artist_counts(dataset.manifest)
+
+        # Budowa modeli/optymalizatorów i wczytanie zapisanego stanu (Wymaganie 3.5).
+        self._build_models()
+        self._build_optimizers()
+        assert self.generator is not None and self.discriminator is not None
+        assert self.optimizer_g is not None and self.optimizer_d is not None
+        self.generator.load_state_dict(checkpoint["generator_state"])
+        self.discriminator.load_state_dict(checkpoint["discriminator_state"])
+        self.optimizer_g.load_state_dict(checkpoint["optimizer_g_state"])
+        self.optimizer_d.load_state_dict(checkpoint["optimizer_d_state"])
+
+        # Przywrócenie stanów RNG, aby tasowanie i losowość były kontynuacją
+        # pierwotnego treningu, a nie nowym przebiegiem (Wymagania 3.5, 3.6).
+        self._restore_rng_states(checkpoint.get("rng_states", {}))
+
+        # DataLoader: ziarno wyprowadzone z seedu konfiguracji - tasowanie batchy
+        # jest deterministyczne, a globalny stan RNG pochodzi z Punktu_Kontrolnego.
+        loader_generator = torch.Generator()
+        loader_generator.manual_seed(int(self.config.seed))
+        loader = DataLoader(
+            dataset,
+            batch_size=self.config.training.batch_size,
+            shuffle=True,
+            num_workers=0,
+            drop_last=False,
+            generator=loader_generator,
+        )
+
+        start_epoch = int(checkpoint["epoch"]) + 1
+        epochs = int(self.config.training.epochs)
+
+        # Odtworzenie historii metryk z Punktu_Kontrolnego (kontynuacja serii).
+        history: dict[str, list[float]] = {
+            "loss_g": [],
+            "loss_d": [],
+            "loss_cls": [],
+            "loss_cyc": [],
+            "val_identity_l1": [],
+        }
+        saved_history = checkpoint.get("history", {})
+        for key in history:
+            history[key] = list(saved_history.get(key, []))
+
+        # Przypadek brzegowy: zapisana epoka osiągnęła już docelową liczbę epok.
+        if start_epoch > epochs:
+            self._emit(
+                "INFO",
+                "wznowienie bez dodatkowych epok",
+                checkpoint_epoch=int(checkpoint["epoch"]),
+                configured_epochs=epochs,
+            )
+            return checkpoint_path
+
+        self._emit(
+            "INFO",
+            "wznowiono trening z Punktu_Kontrolnego",
+            mode=self.mode,
+            resume_from_epoch=int(checkpoint["epoch"]),
+            start_epoch=start_epoch,
+            end_epoch=epochs,
+            checkpoint=str(checkpoint_path),
+        )
+
+        last_checkpoint = self._train_epoch_loop(
+            start_epoch=start_epoch, end_epoch=epochs, loader=loader, history=history
+        )
+
+        assert last_checkpoint is not None  # start_epoch <= epochs gwarantuje zapis
+        self._emit(
+            "INFO", "zakończono wznowiony trening", checkpoint=str(last_checkpoint)
+        )
         return last_checkpoint
 
     def check_artist_counts(
@@ -347,6 +491,105 @@ class GANTrainer:
         return insufficient
 
     # -- pętla treningowa ----------------------------------------------------
+
+    def _train_epoch_loop(
+        self,
+        *,
+        start_epoch: int,
+        end_epoch: int,
+        loader: DataLoader,
+        history: dict[str, list[float]],
+    ) -> Path | None:
+        """Wykonuje pętlę po epokach z obsługą błędu OOM (Wymagania 3.8, 3.9).
+
+        Pętla iteruje od ``start_epoch`` do ``end_epoch`` włącznie. Po każdej
+        epoce aktualizuje ``history``, loguje metryki walidacyjne i zapisuje
+        *Punkt_Kontrolny*. Wspólna dla :meth:`train` (od epoki 1) oraz
+        :meth:`resume` (od ``checkpoint["epoch"] + 1``), dzięki czemu logika
+        epoki i obsługa OOM nie są zduplikowane.
+
+        Obsługa OOM (Wymaganie 3.9): cała pętla jest owinięta w
+        ``try/except torch.cuda.OutOfMemoryError``. Przy wystąpieniu braku pamięci
+        GPU emitowane jest ostrzeżenie z sugerowaną redukcją ``batch_size`` do
+        połowy bieżącej wartości, a następnie zgłaszany jest
+        :class:`~musicians_style.errors.GpuOutOfMemoryError` (kod wyjścia ``3``).
+        Trener **nie** wywołuje ``sys.exit`` - przełożenie wyjątku na kod wyjścia
+        procesu należy do warstwy CLI (zadanie 12.1).
+
+        Args:
+            start_epoch: numer pierwszej epoki do wykonania (1-based, włącznie).
+            end_epoch: numer ostatniej epoki do wykonania (włącznie).
+            loader: ``DataLoader`` dostarczający batchy ``(pianoroll, etykieta)``.
+            history: słownik serii metryk modyfikowany w miejscu.
+
+        Returns:
+            Ścieżka ostatniego zapisanego *Punktu_Kontrolnego* lub ``None``, gdy
+            zakres ``[start_epoch, end_epoch]`` jest pusty (brak epok do wykonania).
+
+        Raises:
+            GpuOutOfMemoryError: gdy w trakcie treningu wystąpi
+                ``torch.cuda.OutOfMemoryError``.
+        """
+        last_checkpoint: Path | None = None
+        try:
+            for epoch in range(start_epoch, end_epoch + 1):
+                epoch_avg = self._run_epoch(epoch, loader)
+                val_metric = self._validate(loader)
+
+                history["loss_g"].append(epoch_avg.get("loss_g", 0.0))
+                history["loss_d"].append(epoch_avg.get("loss_d", 0.0))
+                history["loss_cls"].append(epoch_avg.get("loss_cls", 0.0))
+                history["loss_cyc"].append(epoch_avg.get("loss_cyc", 0.0))
+                history["val_identity_l1"].append(val_metric)
+
+                self._emit(
+                    "INFO",
+                    "metryki walidacyjne epoki",
+                    epoch=epoch,
+                    val_identity_l1=val_metric,
+                    loss_g=epoch_avg.get("loss_g", 0.0),
+                    loss_d=epoch_avg.get("loss_d", 0.0),
+                )
+
+                last_checkpoint = self._save_checkpoint(epoch, history)
+        except torch.cuda.OutOfMemoryError as exc:
+            raise self._handle_oom(exc) from exc
+
+        return last_checkpoint
+
+    def _handle_oom(
+        self, exc: "torch.cuda.OutOfMemoryError"
+    ) -> GpuOutOfMemoryError:
+        """Loguje błąd OOM i buduje :class:`GpuOutOfMemoryError` (Wymaganie 3.9).
+
+        Sugerowany rozmiar wsadu to połowa bieżącego ``batch_size`` (minimum 1),
+        zgodnie z heurystyką remediacji z sekcji *Error Handling* (``design.md``).
+        Metoda zwraca gotowy wyjątek (zamiast go zgłaszać), aby wywołujący mógł
+        zachować łańcuch przyczyn ``raise ... from exc``.
+
+        Args:
+            exc: oryginalny wyjątek ``torch.cuda.OutOfMemoryError``.
+
+        Returns:
+            :class:`~musicians_style.errors.GpuOutOfMemoryError` z komunikatem
+            zawierającym sugerowaną redukcję ``batch_size`` (``exit_code == 3``).
+        """
+        current_batch_size = int(self.config.training.batch_size)
+        suggested = max(current_batch_size // 2, 1)
+        self._logger.error(
+            "brak pamięci GPU podczas treningu",
+            current_batch_size=current_batch_size,
+            suggested_batch_size=suggested,
+            error=str(exc),
+        )
+        self._emit(
+            "ERROR",
+            "brak pamięci GPU podczas treningu",
+            current_batch_size=current_batch_size,
+            suggested_batch_size=suggested,
+            error=str(exc),
+        )
+        return GpuOutOfMemoryError(suggested_batch_size=suggested)
 
     def _run_epoch(self, epoch: int, loader: DataLoader) -> dict[str, float]:
         """Wykonuje pojedynczą epokę treningu, zwracając średnie strat z epoki."""
@@ -632,6 +875,38 @@ class GANTrainer:
             "numpy": np.random.get_state(),
             "python": random.getstate(),
         }
+
+    @staticmethod
+    def _restore_rng_states(rng_states: Mapping[str, Any]) -> None:
+        """Przywraca stany generatorów liczb pseudolosowych z *Punktu_Kontrolnego*.
+
+        Operacja odwrotna do :meth:`_capture_rng_states` (zadanie 9.3): odtwarza
+        stan ``torch_cpu``, ``torch_cuda`` (gdy dostępne CUDA i zapisano stany),
+        ``numpy`` oraz ``python``. Dzięki temu wznowiony trening jest kontynuacją
+        tego samego strumienia losowości, a nie nowym przebiegiem (Wymagania 3.5,
+        3.6). Brakujące klucze są pomijane, co zapewnia odporność na *Punkty_Kontrolne*
+        zapisane w środowisku o innej dostępności urządzeń.
+
+        Args:
+            rng_states: słownik stanów RNG z *Punktu_Kontrolnego* (klucze
+                ``torch_cpu``, ``torch_cuda``, ``numpy``, ``python``).
+        """
+        torch_cpu = rng_states.get("torch_cpu")
+        if torch_cpu is not None:
+            # torch.set_rng_state wymaga ByteTensor na CPU.
+            torch.set_rng_state(torch.as_tensor(torch_cpu, dtype=torch.uint8))
+
+        torch_cuda = rng_states.get("torch_cuda")
+        if torch_cuda and torch.cuda.is_available():
+            torch.cuda.set_rng_state_all(list(torch_cuda))
+
+        numpy_state = rng_states.get("numpy")
+        if numpy_state is not None:
+            np.random.set_state(numpy_state)
+
+        python_state = rng_states.get("python")
+        if python_state is not None:
+            random.setstate(python_state)
 
     def _config_hash(self) -> str:
         """Oblicza deterministyczny skrót SHA-256 konfiguracji eksperymentu.

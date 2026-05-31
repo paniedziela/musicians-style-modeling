@@ -256,12 +256,12 @@ Każde zadanie property-based testowe odwołuje się do konkretnej właściwośc
     - W trybie warunkowanym sprawdzać per-artist liczność i emitować ostrzeżenia tylko dla artystów z `< 30` plikami; trening kontynuowany
     - _Requirements: 3.2, 3.4, 3.6, 3.8, 3.10, 3.11, 3.14_
 
-  - [ ] 9.3 Implementacja wznawiania treningu z Punktu_Kontrolnego
+  - [x] 9.3 Implementacja wznawiania treningu z Punktu_Kontrolnego
     - Metoda `GANTrainer.resume(checkpoint_path) -> Path` wczytuje `state_dict` generatora, dyskryminatora, optymalizatorów oraz stany RNG, kontynuuje od zapisanej epoki
     - Walidować zgodność `metadata.mode` z aktualną konfiguracją
     - _Requirements: 3.5_
 
-  - [ ] 9.4 Obsługa błędu OOM w GANTrainer
+  - [x] 9.4 Obsługa błędu OOM w GANTrainer
     - Owijać pętlę treningu w `try/except torch.cuda.OutOfMemoryError`; przy wystąpieniu logować, sugerować redukcję `batch_size` (np. `current_batch_size // 2`), zgłaszać `GpuOutOfMemoryError` i kończyć z exit code 3
     - _Requirements: 3.9_
 
@@ -276,18 +276,18 @@ Każde zadanie property-based testowe odwołuje się do konkretnej właściwośc
     - _Requirements: 3.4, 3.5, 3.11, 3.14_
 
 - [ ] 10. Pipeline transferu stylu (inferencja)
-  - [ ] 10.1 Implementacja inferencji GAN z walidacją target_artist
+  - [x] 10.1 Implementacja inferencji GAN z walidacją target_artist
     - W `src/musicians_style/inference/pipeline.py` zaimplementować `StyleTransferPipeline.infer_gan(x_path, target_artist, checkpoint_path, seed)`
     - Wczytać Punkt_Kontrolny, walidować `target_artist`: jeśli `mode == "conditional"` i `target_artist not in metadata.artists` → zgłosić `UnknownArtistError(requested, available=metadata.artists)` + exit 2; jeśli `mode == "per_artist"` i `target_artist != metadata.artists[0]` → `ArtistMismatchError` + exit 2
     - Przetwarzanie: `parse → Pianoroll.from_internal → G(x, c) → Pianoroll.to_internal(template=parsed_input) → write`
     - _Requirements: 5.1, 5.2, 5.6, 5.7, 5.8, 5.9, 5.10_
 
-  - [ ] 10.2 Implementacja inferencji GA
+  - [x] 10.2 Implementacja inferencji GA
     - Metoda `StyleTransferPipeline.infer_ga(x_path, target_artist, style_manifest_path, seed)` używająca `GeneticAlgorithm.run` na cechach `Zbioru_Stylu` artysty docelowego
     - Po znalezieniu najlepszego `Genome` aplikować `apply_transformation(x_input, best_genome)` i zapisywać wynik przez `MidiPrettyPrinter`
     - _Requirements: 5.1, 5.11_
 
-  - [ ] 10.3 Implementacja trybu łączonego GAN+GA
+  - [x] 10.3 Implementacja trybu łączonego GAN+GA
     - Metoda `StyleTransferPipeline.infer_combined(x_path, target_artist, checkpoint_path, style_manifest_path, seed)` umożliwiająca kolejne lub równoległe wykorzystanie obu metod (np. GAN → wynik → GA jako post-processing)
     - Wybór trybu na podstawie konfiguracji
     - _Requirements: 5.1_
