@@ -130,7 +130,7 @@ Każde zadanie property-based testowe odwołuje się do konkretnej właściwośc
     - Macierz kowariancji wykorzystywana w odległości Mahalanobisa w `Funkcji_Dopasowania` i ewaluacji
     - _Requirements: 2.6_
 
-- [~] 4. Checkpoint - parser MIDI i ekstraktor cech działają
+- [ ] 4. Checkpoint - parser MIDI i ekstraktor cech działają
   - Ensure all tests pass, ask the user if questions arise.
 
 - [x] 5. Akwizytor danych i Manifest_Zbioru
@@ -179,13 +179,13 @@ Każde zadanie property-based testowe odwołuje się do konkretnej właściwośc
     - Funkcja deterministyczna względem wejść (brak losowości)
     - _Requirements: 4.3_
 
-  - [-] 6.3 Implementacja operatorów genetycznych
+  - [x] 6.3 Implementacja operatorów genetycznych
     - W `src/musicians_style/ga/operators.py` zaimplementować: `tournament_select(population, fitnesses, k, rng)`, `single_point_crossover(p1, p2, rng)`, `uniform_crossover(p1, p2, rng)` (BLX-α dla parametrów rzeczywistych z α=0.5), `gaussian_mutate(genome, sigma_per_param, rng)`
     - Wszystkie operatory akceptują `numpy.random.Generator` jako parametr (brak globalnego RNG)
     - Operatory zwracają nowe instancje `Genome`, nigdy nie modyfikują wejścia
     - _Requirements: 4.2_
 
-  - [~] 6.4 Główna pętla GeneticAlgorithm z elitaryzmem i warunkami stopu
+  - [x] 6.4 Główna pętla GeneticAlgorithm z elitaryzmem i warunkami stopu
     - W `src/musicians_style/ga/algorithm.py` zaimplementować klasę `GeneticAlgorithm` z metodą `run(x_input, style_aggregated, config: GAConfig, seed: int) -> tuple[Genome, History]`
     - Inicjalizacja populacji z `numpy.random.Generator(seed)`, ewaluacja, pętla pokoleń: selekcja → krzyżowanie → mutacja → ewaluacja → elitaryzm (k_elite najlepszych przechodzi bezpośrednio)
     - Warunki stopu: `max_generations` lub stagnacja przez `stagnation_generations`
@@ -216,7 +216,7 @@ Każde zadanie property-based testowe odwołuje się do konkretnej właściwośc
     - W `tests/property/test_ga_operators.py` dla losowej `population_strategy` o rozmiarze N i konfiguracji operatorów weryfikować, że `next_generation(P, config).size == N` oraz że każdy gen mieści się w zadeklarowanych zakresach
     - `@settings(max_examples=200, deadline=None)`
 
-- [~] 7. Checkpoint - algorytm genetyczny działa deterministycznie
+- [ ] 7. Checkpoint - algorytm genetyczny działa deterministycznie
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 8. Modele GAN (StarGAN i CycleGAN)
@@ -231,7 +231,7 @@ Każde zadanie property-based testowe odwołuje się do konkretnej właściwośc
     - Forward generatora: `forward(x: Tensor) -> Tensor`
     - _Requirements: 3.1, 3.13_
 
-  - [-] 8.3 Implementacja funkcji strat GAN
+  - [x] 8.3 Implementacja funkcji strat GAN
     - W `src/musicians_style/models/losses.py` zaimplementować: `adversarial_loss(D_src_real, D_src_fake)`, `domain_classification_loss_real(D_cls, c_real)`, `domain_classification_loss_fake(D_cls, c_target)`, `cycle_consistency_loss(G, x, c_orig, c_target)`, `identity_loss(G, x, c_orig)`
     - Łączna strata: `L = L_adv + λ_cls * L_cls + λ_cyc * L_cyc + λ_id * L_id` z λ_cls=1, λ_cyc=10, λ_id=5 (z konfiguracji)
     - _Requirements: 3.12_
@@ -248,7 +248,7 @@ Każde zadanie property-based testowe odwołuje się do konkretnej właściwośc
     - Klasa `MultiArtistManifest` agregująca manifesty per-artist z mapowaniem artysta → indeks Etykiety_Artysty
     - _Requirements: 3.2_
 
-  - [~] 9.2 Implementacja GANTrainer z trybem warunkowanym i per-artysta
+  - [x] 9.2 Implementacja GANTrainer z trybem warunkowanym i per-artysta
     - W `src/musicians_style/training/trainer.py` zaimplementować klasę `GANTrainer` z parametrem `mode: Literal["conditional", "per_artist"]` i metodą `train(manifest, seed) -> Path`
     - Zapis Punktu_Kontrolnego po każdej epoce z polami: `epoch`, `generator_state`, `discriminator_state`, `optimizer_g_state`, `optimizer_d_state`, `rng_states (torch_cpu/cuda, numpy, python)`, `metadata.{mode, artists, config_hash, git_commit, model_version}`, `history`
     - Logowanie funkcji strat generatora i dyskryminatora w każdej iteracji oraz metryk walidacyjnych po każdej epoce do `train.jsonl`
@@ -256,12 +256,12 @@ Każde zadanie property-based testowe odwołuje się do konkretnej właściwośc
     - W trybie warunkowanym sprawdzać per-artist liczność i emitować ostrzeżenia tylko dla artystów z `< 30` plikami; trening kontynuowany
     - _Requirements: 3.2, 3.4, 3.6, 3.8, 3.10, 3.11, 3.14_
 
-  - [~] 9.3 Implementacja wznawiania treningu z Punktu_Kontrolnego
+  - [ ] 9.3 Implementacja wznawiania treningu z Punktu_Kontrolnego
     - Metoda `GANTrainer.resume(checkpoint_path) -> Path` wczytuje `state_dict` generatora, dyskryminatora, optymalizatorów oraz stany RNG, kontynuuje od zapisanej epoki
     - Walidować zgodność `metadata.mode` z aktualną konfiguracją
     - _Requirements: 3.5_
 
-  - [~] 9.4 Obsługa błędu OOM w GANTrainer
+  - [ ] 9.4 Obsługa błędu OOM w GANTrainer
     - Owijać pętlę treningu w `try/except torch.cuda.OutOfMemoryError`; przy wystąpieniu logować, sugerować redukcję `batch_size` (np. `current_batch_size // 2`), zgłaszać `GpuOutOfMemoryError` i kończyć z exit code 3
     - _Requirements: 3.9_
 
@@ -276,18 +276,18 @@ Każde zadanie property-based testowe odwołuje się do konkretnej właściwośc
     - _Requirements: 3.4, 3.5, 3.11, 3.14_
 
 - [ ] 10. Pipeline transferu stylu (inferencja)
-  - [~] 10.1 Implementacja inferencji GAN z walidacją target_artist
+  - [ ] 10.1 Implementacja inferencji GAN z walidacją target_artist
     - W `src/musicians_style/inference/pipeline.py` zaimplementować `StyleTransferPipeline.infer_gan(x_path, target_artist, checkpoint_path, seed)`
     - Wczytać Punkt_Kontrolny, walidować `target_artist`: jeśli `mode == "conditional"` i `target_artist not in metadata.artists` → zgłosić `UnknownArtistError(requested, available=metadata.artists)` + exit 2; jeśli `mode == "per_artist"` i `target_artist != metadata.artists[0]` → `ArtistMismatchError` + exit 2
     - Przetwarzanie: `parse → Pianoroll.from_internal → G(x, c) → Pianoroll.to_internal(template=parsed_input) → write`
     - _Requirements: 5.1, 5.2, 5.6, 5.7, 5.8, 5.9, 5.10_
 
-  - [~] 10.2 Implementacja inferencji GA
+  - [ ] 10.2 Implementacja inferencji GA
     - Metoda `StyleTransferPipeline.infer_ga(x_path, target_artist, style_manifest_path, seed)` używająca `GeneticAlgorithm.run` na cechach `Zbioru_Stylu` artysty docelowego
     - Po znalezieniu najlepszego `Genome` aplikować `apply_transformation(x_input, best_genome)` i zapisywać wynik przez `MidiPrettyPrinter`
     - _Requirements: 5.1, 5.11_
 
-  - [~] 10.3 Implementacja trybu łączonego GAN+GA
+  - [ ] 10.3 Implementacja trybu łączonego GAN+GA
     - Metoda `StyleTransferPipeline.infer_combined(x_path, target_artist, checkpoint_path, style_manifest_path, seed)` umożliwiająca kolejne lub równoległe wykorzystanie obu metod (np. GAN → wynik → GA jako post-processing)
     - Wybór trybu na podstawie konfiguracji
     - _Requirements: 5.1_
@@ -330,18 +330,18 @@ Każde zadanie property-based testowe odwołuje się do konkretnej właściwośc
     - Raportować wartości p w `objective_report.json`
     - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.5_
 
-  - [-] 11.3 Generowanie wykresów porównawczych
+  - [x] 11.3 Generowanie wykresów porównawczych
     - W `src/musicians_style/evaluation/plots.py` zaimplementować generację histogramów i wykresów pudełkowych cech `Utworu_Wejściowego`, `Utworu_Wyjściowego`, `Zbioru_Stylu` używając `matplotlib`
     - Zapisywać w formacie PDF lub EPS zgodnie z konfiguracją (`evaluation.plot_format`)
     - _Requirements: 6.6_
 
-  - [-] 11.4 Implementacja SubjectiveEvaluator z FluidSynth
+  - [x] 11.4 Implementacja SubjectiveEvaluator z FluidSynth
     - W `src/musicians_style/evaluation/subjective.py` zaimplementować `SubjectiveEvaluator.prepare_listening_set(n_pairs=10)` zwracający `ListeningSet` z parami `(input, output)` + fragmenty referencyjne `Zbioru_Stylu`
     - Metoda `render_to_audio(midi_path, soundfont, clip_seconds=15)` używająca `FluidSynth` do generacji WAV (44.1 kHz, 16 bit) - ujednolicony SoundFont
     - Dla próbek z chronionego `Zbioru_Stylu` ograniczać długość do 15 s
     - _Requirements: 7.1, 7.2, 7.3_
 
-  - [~] 11.5 Implementacja formularza ankietowego i analizy odpowiedzi
+  - [x] 11.5 Implementacja formularza ankietowego i analizy odpowiedzi
     - Metoda `build_form(listening_set, form_type: Literal["ABX", "MOS"]) -> FormSpec` generująca specyfikację formularza
     - Metoda `analyze_responses(responses)` obliczająca średnią, odchylenie standardowe, przedziały ufności (bez przycinania do skali [1, 5]); test istotności gdy n_respondents ≥ 20
     - _Requirements: 7.4, 7.5_
@@ -358,7 +358,7 @@ Każde zadanie property-based testowe odwołuje się do konkretnej właściwośc
     - _Requirements: 6.3, 6.4, 6.5_
 
 - [ ] 12. CLI i integracja end-to-end
-  - [~] 12.1 Implementacja CLI z komendami acquire, train, infer, evaluate
+  - [ ] 12.1 Implementacja CLI z komendami acquire, train, infer, evaluate
     - W `src/musicians_style/cli.py` zaimplementować z `argparse` lub `click` komendy: `midi-style acquire --config CONFIG`, `midi-style train --config CONFIG`, `midi-style infer --target_artist NAME --checkpoint CKPT --input X.mid --output Y.mid [--seed S]`, `midi-style evaluate --pairs PAIRS_DIR --style MANIFEST`
     - Komenda `infer` SHALL wymagać obowiązkowego parametru `target_artist` niezależnie od trybu Punktu_Kontrolnego
     - Kody wyjścia: 0 (sukces), 1 (uncaught), 2 (walidacja wejścia/konfiguracji), 3 (zasoby/OOM)
@@ -380,7 +380,7 @@ Każde zadanie property-based testowe odwołuje się do konkretnej właściwośc
     - W `tests/integration/test_resource_smoke.py` (manualne, oznaczyć `@pytest.mark.slow`) weryfikować: ekstrakcja cech pliku 5-minutowego < 10 s na CPU, zużycie VRAM < 6 GB podczas treningu z domyślnym batch size
     - _Requirements: 2.5, 9.4_
 
-- [~] 13. Końcowy checkpoint - cały Pipeline integracyjny
+- [ ] 13. Końcowy checkpoint - cały Pipeline integracyjny
   - Ensure all tests pass, ask the user if questions arise.
 
 ## Notes

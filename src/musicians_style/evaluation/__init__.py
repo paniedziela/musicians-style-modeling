@@ -18,6 +18,26 @@ from .objective import (
     SeriesStats,
     StatTestResult,
 )
+from .plots import (
+    generate_comparison_plots,
+    plot_interval_histogram,
+    plot_pitch_class_histogram,
+    plot_scalar_boxplots,
+)
+from .subjective import (
+    AudioRenderer,
+    FormQuestion,
+    FormSpec,
+    FormType,
+    ListeningPair,
+    ListeningSet,
+    MetricStats,
+    Response,
+    SignificanceResult,
+    SubjectiveEvaluator,
+    SubjectiveReport,
+    default_fluidsynth_renderer,
+)
 
 __all__ = [
     "euclidean",
@@ -28,4 +48,20 @@ __all__ = [
     "DescriptiveStats",
     "SeriesStats",
     "Metric",
+    "generate_comparison_plots",
+    "plot_pitch_class_histogram",
+    "plot_interval_histogram",
+    "plot_scalar_boxplots",
+    "SubjectiveEvaluator",
+    "ListeningSet",
+    "ListeningPair",
+    "AudioRenderer",
+    "default_fluidsynth_renderer",
+    "FormSpec",
+    "FormQuestion",
+    "FormType",
+    "Response",
+    "SubjectiveReport",
+    "MetricStats",
+    "SignificanceResult",
 ]
