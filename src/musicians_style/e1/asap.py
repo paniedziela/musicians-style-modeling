@@ -44,6 +44,12 @@ class E1Config:
     split_seeds: tuple[int, ...] = (1729, 2718, 3141, 5772, 8119)
     outer_splits: int = 5
     inner_splits: int = 3
+    open_calibration_composers: tuple[str, ...] = ()
+    open_test_composers: tuple[str, ...] = ()
+    open_minimum_samples_per_composer: int = 4
+    open_models: tuple[str, ...] = ("logistic_regression", "random_forest")
+    open_known_calibration_folds: tuple[int, ...] = (0, 1)
+    open_target_known_tpr: float = 0.95
 
 
 def load_e1_config(path: Path | str) -> E1Config:
@@ -65,6 +71,33 @@ def load_e1_config(path: Path | str) -> E1Config:
     inner_splits = int(raw.get("inner_splits", 3))
     if outer_splits < 2 or inner_splits < 2:
         raise ValueError("outer_splits and inner_splits must be at least 2")
+    open_raw = raw.get("open_set", {})
+    if not isinstance(open_raw, dict):
+        raise ValueError("open_set must be a mapping")
+    open_calibration = tuple(
+        str(value) for value in open_raw.get("calibration_composers", ())
+    )
+    open_test = tuple(str(value) for value in open_raw.get("test_composers", ()))
+    if set(open_calibration) & set(open_test):
+        raise ValueError("open-set calibration and test composers must be disjoint")
+    if set(composers) & (set(open_calibration) | set(open_test)):
+        raise ValueError("known composers cannot also be open-set composers")
+    open_models = tuple(
+        str(value)
+        for value in open_raw.get(
+            "models", ("logistic_regression", "random_forest")
+        )
+    )
+    known_calibration_folds = tuple(
+        int(value) for value in open_raw.get("known_calibration_folds", (0, 1))
+    )
+    if not set(known_calibration_folds) < set(range(outer_splits)):
+        raise ValueError(
+            "open-set known_calibration_folds must be a non-empty proper subset of outer folds"
+        )
+    target_known_tpr = float(open_raw.get("target_known_tpr", 0.95))
+    if not 0.0 < target_known_tpr <= 1.0:
+        raise ValueError("open-set target_known_tpr must be in (0, 1]")
     return E1Config(
         dataset_root=Path(raw["dataset_root"]),
         output_dir=Path(raw["output_dir"]),
@@ -76,6 +109,14 @@ def load_e1_config(path: Path | str) -> E1Config:
         split_seeds=split_seeds,
         outer_splits=outer_splits,
         inner_splits=inner_splits,
+        open_calibration_composers=open_calibration,
+        open_test_composers=open_test,
+        open_minimum_samples_per_composer=int(
+            open_raw.get("minimum_samples_per_composer", 4)
+        ),
+        open_models=open_models,
+        open_known_calibration_folds=known_calibration_folds,
+        open_target_known_tpr=target_known_tpr,
     )
 
 
@@ -104,7 +145,10 @@ def group_id_for(composer: str, title: str) -> str:
         sonata = re.match(r"Sonata_(\d+)(?:_|$)", title, re.IGNORECASE)
         work = f"sonata-{sonata.group(1)}" if sonata else _slug(title)
     else:
-        work = _slug(title)
+        sonata = re.match(
+            r"(?:Piano|Keyboard)_Sonatas_(\d+)(?:-|$)", title, re.IGNORECASE
+        )
+        work = f"keyboard-sonata-{sonata.group(1)}" if sonata else _slug(title)
     return f"{_slug(composer)}--{work}"
 
 

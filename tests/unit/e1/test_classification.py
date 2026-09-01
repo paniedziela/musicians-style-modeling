@@ -87,6 +87,22 @@ def test_oof_validator_rejects_duplicate_prediction() -> None:
     assert result["oof_validation"]["prediction_count"] == 60
 
 
+def test_variant_filter_runs_only_requested_ablation() -> None:
+    cache, splits = _inputs()
+    result, predictions = run_e1a(
+        cache,
+        splits,
+        bootstrap_samples=5,
+        permutations=5,
+        include_group_sensitivity=False,
+        model_names=("dummy_most_frequent",),
+        variant_names=("legacy_score_only",),
+    )
+    assert {row["variant"] for row in predictions} == {"legacy_score_only"}
+    assert result["protocol"]["feature_variants"] == ["legacy_score_only"]
+    assert len(predictions) == 30
+
+
 def test_retrained_group_permutation_control_refits_models() -> None:
     cache, splits = _inputs()
     result, _ = run_e1a(

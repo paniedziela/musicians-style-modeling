@@ -8,6 +8,8 @@ from .composition_features import (
     write_composition_feature_cache,
 )
 from .features import build_legacy_feature_cache, write_legacy_feature_cache
+from .open_set import build_open_data, run_e1_open, write_e1_open_results, write_open_data
+from .reporting import write_e1_closure_report
 from .splits import build_e1_splits, write_e1_splits
 
 __all__ = [
@@ -26,4 +28,9 @@ __all__ = [
     "write_composition_feature_cache",
     "run_e1b",
     "write_e1b_results",
+    "build_open_data",
+    "write_open_data",
+    "run_e1_open",
+    "write_e1_open_results",
+    "write_e1_closure_report",
 ]

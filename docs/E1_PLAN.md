@@ -255,6 +255,26 @@ jednak objąć te dane tym samym audytem kanonizacji, grupowania i kontroli SHA 
 trzy klasy główne. Analiza ma charakter testu odporności i zakresu stosowalności,
 nie dowodu atrybucji autorstwa.
 
+Zamrożony podział E1-open:
+
+- kalibracja progu unknown: Haydn, Mozart i Schumann (27 próbek);
+- końcowy test unknown: Liszt, Schubert, Rachmaninoff i Ravel (37 próbek);
+- znane próbki z foldów 0–1 pierwszego powtórzenia służą do kalibracji progu,
+  a foldy 2–4 do raportowanej oceny;
+- każda próbka unknown jest deterministycznie przypisana do dokładnie jednego
+  modelu foldowego, dzięki czemu jej confidence nie pochodzi z uprzywilejowanego
+  ensemble'u i jest porównywalne z predykcją OOF próbki znanej;
+- logistic regression (`C=1`) i random forest (`max_features="sqrt"`,
+  `min_samples_leaf=1`) mają stałe hiperparametry, bez nested grid searchu;
+- próg maksymalizuje balanced accuracy known/unknown pod warunkiem zachowania
+  co najmniej 95% znanych próbek w części kalibracyjnej.
+
+Pierwszy przebieg diagnostyczny potwierdził, że confidence nie wystarcza jeszcze
+do niezawodnego odrzucania. Random forest osiągnął AUROC 0,742, ale przy
+zamrożonym progu recall klasy unknown wyniósł tylko 0,108; logistic regression
+osiągnęła AUROC 0,676 i recall unknown 0,000. Wynik pozostaje analizą zakresu
+stosowalności i nie zmienia kryterium sukcesu closed-set E1.
+
 ## Etapy implementacji i bramki jakości
 
 ### E1.0 — środowisko i audyt surowych danych
@@ -365,5 +385,14 @@ przenosić ani zmieniać nazw jego plików.
   zewnętrznych foldach oraz zapisuje analizę błędów według form wyprowadzonych z
   tytułów ASAP. Do zamrożenia wyniku potrzebny jest finalny przebieg E1b z co
   najmniej 99 permutacjami retreningowymi.
+- **E1-open — implementacja i pierwszy przebieg ukończone:** rozszerzony audyt
+  zaakceptował 214/214 plików, rozłączne zbiory kompozytorów kalibracyjnych i
+  testowych są zamrożone, a raport obejmuje AUROC/AUPRC, FPR przy zadanym TPR,
+  recall unknown, pokrycie, jakość zaakceptowanych znanych próbek i trzy kontrole
+  leave-one-composer-out.
+- **E1.4 — implementacja domknięta, oczekuje na finalny E1b:** generator wymaga
+  ukończonego `run_manifest.json`, sprawdza kryterium sukcesu, zapisuje CSV-y,
+  cztery wykresy, proweniencję, ograniczenie closed-set i opcjonalną sekcję
+  E1-open. Nieukończony test permutacyjny daje status „niekompletne”.
 
 Nie ma potrzeby pobierania teraz MAESTRO, GiantMIDI-Piano ani innego zbioru.

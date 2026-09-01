@@ -395,6 +395,7 @@ def validate_oof_predictions(
     *,
     model_names: tuple[str, ...],
     analysis_modes: tuple[str, ...],
+    variant_names: tuple[str, ...] | None = None,
 ) -> dict[str, Any]:
     """Fail closed unless every expected OOF prediction exists exactly once."""
     metadata = {row["sample_id"]: row for row in feature_cache["samples"]}
@@ -411,7 +412,7 @@ def validate_oof_predictions(
                 if analysis == "all_samples"
                 else _one_sample_per_group(feature_cache["samples"], int(repetition["seed"]))
             )
-            for variant in feature_cache["variants"]:
+            for variant in variant_names or tuple(feature_cache["variants"]):
                 for model in model_names:
                     expected.update(
                         (analysis, variant, model, repeat, sample_id)
@@ -453,7 +454,8 @@ def validate_oof_predictions(
     }
 
 
-def _fixed_permutation_estimator(model_name: str, seed: int) -> BaseEstimator:
+def fixed_e1_estimator(model_name: str, seed: int) -> BaseEstimator:
+    """Build a deterministic E1 model with predeclared, untuned parameters."""
     estimator, _ = _models(seed)[model_name]
     if model_name == "logistic_regression":
         estimator.set_params(model__C=1.0)
@@ -468,6 +470,7 @@ def _retrained_group_permutation_tests(
     *,
     permutations: int,
     model_names: tuple[str, ...],
+    variant_names: tuple[str, ...],
     progress_callback: ProgressCallback | None,
 ) -> list[dict[str, Any]]:
     """Retrain fixed pipelines after group-level label permutations on repeat 0."""
@@ -492,10 +495,11 @@ def _retrained_group_permutation_tests(
     group_labels = {group: str(target[np.flatnonzero(groups == group)[0]]) for group in group_ids}
     tested_models = tuple(name for name in model_names if name != "dummy_most_frequent")
     results: list[dict[str, Any]] = []
-    for variant_offset, (variant, specification) in enumerate(feature_cache["variants"].items()):
+    for variant_offset, variant in enumerate(variant_names):
+        specification = feature_cache["variants"][variant]
         x = matrix[:, np.asarray(specification["indices"], dtype=int)]
         for model_offset, model_name in enumerate(tested_models):
-            estimator = _fixed_permutation_estimator(model_name, seed)
+            estimator = fixed_e1_estimator(model_name, seed)
 
             def cross_validated_score(y: np.ndarray) -> float:
                 truth: list[str] = []
@@ -558,6 +562,7 @@ def run_e1a(
     retraining_permutations: int = 0,
     include_group_sensitivity: bool = True,
     model_names: tuple[str, ...] | None = None,
+    variant_names: tuple[str, ...] | None = None,
     permutation_importance_repeats: int = 0,
     progress_callback: ProgressCallback | None = None,
 ) -> tuple[dict[str, Any], list[dict[str, Any]]]:
@@ -589,6 +594,12 @@ def run_e1a(
     unknown = set(selected_model_names) - set(_models(0))
     if unknown:
         raise ValueError(f"unknown model names: {sorted(unknown)}")
+    selected_variant_names = variant_names or tuple(feature_cache["variants"])
+    unknown_variants = set(selected_variant_names) - set(feature_cache["variants"])
+    if unknown_variants:
+        raise ValueError(f"unknown feature variants: {sorted(unknown_variants)}")
+    if not selected_variant_names:
+        raise ValueError("at least one feature variant is required")
     analysis_modes = (
         ("all_samples", "one_sample_per_group")
         if include_group_sensitivity
@@ -597,7 +608,7 @@ def run_e1a(
     fold_count = sum(len(repetition["folds"]) for repetition in splits["repetitions"])
     total_fits = (
         len(analysis_modes)
-        * len(feature_cache["variants"])
+        * len(selected_variant_names)
         * fold_count
         * len(selected_model_names)
     )
@@ -606,7 +617,8 @@ def run_e1a(
 
     sensitivity_selections: list[dict[str, Any]] = []
     for analysis in analysis_modes:
-        for variant, specification in feature_cache["variants"].items():
+        for variant in selected_variant_names:
+            specification = feature_cache["variants"][variant]
             columns = np.asarray(specification["indices"], dtype=int)
             x = matrix[:, columns]
             for repetition in splits["repetitions"]:
@@ -617,7 +629,7 @@ def run_e1a(
                     if analysis == "all_samples"
                     else _one_sample_per_group(rows, seed)
                 )
-                if analysis == "one_sample_per_group" and variant == next(iter(feature_cache["variants"])):
+                if analysis == "one_sample_per_group" and variant == selected_variant_names[0]:
                     sensitivity_selections.append(
                         {"repeat": repeat, "seed": seed, "sample_ids": sorted(eligible)}
                     )
@@ -786,12 +798,14 @@ def run_e1a(
         predictions,
         model_names=selected_model_names,
         analysis_modes=analysis_modes,
+        variant_names=selected_variant_names,
     )
     retrained_tests = _retrained_group_permutation_tests(
         feature_cache,
         splits,
         permutations=retraining_permutations,
         model_names=selected_model_names,
+        variant_names=selected_variant_names,
         progress_callback=progress_callback,
     )
     result = {
@@ -811,6 +825,7 @@ def run_e1a(
             "retraining_permutations": retraining_permutations,
             "retraining_permutation_method": "group labels, fixed pipelines, first predeclared repeat",
             "analysis_modes": list(analysis_modes),
+            "feature_variants": list(selected_variant_names),
             "permutation_importance_repeats": permutation_importance_repeats,
             "permutation_importance_scope": (
                 "outer test folds, all_samples, non-dummy models, importance_variant only"
