@@ -41,6 +41,9 @@ class E1Config:
     schema_version: str
     expected_fingerprints: dict[str, str]
     experiment_name: str = "e1_asap"
+    split_seeds: tuple[int, ...] = (1729, 2718, 3141, 5772, 8119)
+    outer_splits: int = 5
+    inner_splits: int = 3
 
 
 def load_e1_config(path: Path | str) -> E1Config:
@@ -55,6 +58,13 @@ def load_e1_config(path: Path | str) -> E1Config:
     expected = raw.get("expected_fingerprints", {})
     if not isinstance(expected, dict):
         raise ValueError("expected_fingerprints must be a mapping")
+    split_seeds = tuple(int(value) for value in raw.get("split_seeds", (1729, 2718, 3141, 5772, 8119)))
+    if not split_seeds:
+        raise ValueError("split_seeds must contain at least one seed")
+    outer_splits = int(raw.get("outer_splits", 5))
+    inner_splits = int(raw.get("inner_splits", 3))
+    if outer_splits < 2 or inner_splits < 2:
+        raise ValueError("outer_splits and inner_splits must be at least 2")
     return E1Config(
         dataset_root=Path(raw["dataset_root"]),
         output_dir=Path(raw["output_dir"]),
@@ -63,6 +73,9 @@ def load_e1_config(path: Path | str) -> E1Config:
         schema_version=str(raw.get("schema_version", "e1.0.0")),
         expected_fingerprints={str(k): str(v).lower() for k, v in expected.items()},
         experiment_name=str(raw.get("experiment_name", "e1_asap")),
+        split_seeds=split_seeds,
+        outer_splits=outer_splits,
+        inner_splits=inner_splits,
     )
 
 

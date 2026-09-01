@@ -280,9 +280,15 @@ docs/results/E1.md                    # śledzone podsumowanie po eksperymencie
 Surowy `datasets/asap-dataset-1.2/` pozostaje niezmieniony. Kod nie powinien
 przenosić ani zmieniać nazw jego plików.
 
-## Następny odseparowany krok
+## Stan implementacji
 
-Następna sesja implementacyjna powinna objąć **wyłącznie E1.0**: środowisko,
-adapter ASAP, manifest i raport jakości. Dopiero po obejrzeniu raportu należy
-zatwierdzić E1.1. Nie ma potrzeby pobierania teraz MAESTRO, GiantMIDI-Piano ani
-innego zbioru.
+- **E1.0 — wykonany:** adapter ASAP, manifest, raport jakości i bramka audytu.
+- **E1.1 — wykonany:** deterministyczne 5×5 `StratifiedGroupKFold`, wewnętrzne
+  3-fold grouped CV, kontrole przecieku `sample_id`/`group_id`/SHA i liczności.
+- **E1.2 — zaimplementowany:** wersjonowany cache `legacy_full` oraz
+  `legacy_score_only`, nested CV dla dummy/logistic/RF, predykcje OOF, metryki,
+  klastrowy bootstrap i permutacja etykiet na poziomie grup.
+- **E1.3 — następny odseparowany krok:** nowy kontrakt i testy cech
+  kompozycyjnych mierzonych w beatach/metrum.
+
+Nie ma potrzeby pobierania teraz MAESTRO, GiantMIDI-Piano ani innego zbioru.

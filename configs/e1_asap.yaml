@@ -7,6 +7,14 @@ composers:
   - Beethoven
   - Chopin
 minimum_samples_per_class: 30
+outer_splits: 5
+inner_splits: 3
+split_seeds:
+  - 1729
+  - 2718
+  - 3141
+  - 5772
+  - 8119
 expected_fingerprints:
   metadata.csv: b327d92e498e281b381161ee387dacfd4b1c360c9c240d9107171f78e571b2a5
   README.md: 4c0cf082cbed77fa4e1e471db0c5e4352aca8c3a1a6b025f8225c12228a638af

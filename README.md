@@ -64,8 +64,18 @@ nie są obecnie jednym spójnym źródłem prawdy.
 ## Podstawowe polecenia
 
 ```powershell
-# etap E1.0: manifest ASAP i raport jakości (bez treningu)
-python -m musicians_style.e1 --config configs/e1_asap.yaml
+# E1.0: manifest ASAP i raport jakości (bez treningu)
+python -m musicians_style.e1 --config configs/e1_asap.yaml --stage audit
+
+# E1.1: deterministyczne zewnętrzne i wewnętrzne splity grouped CV
+python -m musicians_style.e1 --config configs/e1_asap.yaml --stage splits
+
+# E1.2: cache obu wariantów cech i klasyfikacja E1a
+python -m musicians_style.e1 --config configs/e1_asap.yaml --stage features
+python -m musicians_style.e1 --config configs/e1_asap.yaml --stage classify
+
+# albo E1.0-E1.2 w jednym przebiegu
+python -m musicians_style.e1 --config configs/e1_asap.yaml --stage all
 
 # walidacja danych i manifesty
 midi-style acquire --config configs/custom_conditional.yaml
