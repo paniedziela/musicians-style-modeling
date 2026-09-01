@@ -7,7 +7,8 @@ import platform
 from collections import defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from time import perf_counter
+from typing import Any, Callable
 
 import numpy as np
 import sklearn
@@ -24,6 +25,18 @@ from sklearn.preprocessing import StandardScaler
 RESULTS_FILENAME = "e1a_results.json"
 PREDICTIONS_FILENAME = "e1a_predictions.json"
 RESULTS_SCHEMA_VERSION = "e1.2.0"
+ProgressCallback = Callable[[dict[str, Any]], None]
+
+
+def _notify(callback: ProgressCallback | None, event: dict[str, Any]) -> None:
+    """Report progress without allowing a presentation failure to abort training."""
+    if callback is None:
+        return
+    try:
+        callback({"timestamp_utc": datetime.now(timezone.utc).isoformat(), **event})
+    except Exception:
+        # Console/file progress is auxiliary; metrics must remain authoritative.
+        return
 
 
 def _models(seed: int) -> dict[str, tuple[BaseEstimator, dict[str, list[Any]] | None]]:
@@ -147,6 +160,7 @@ def run_e1a(
     bootstrap_samples: int = 2000,
     permutations: int = 999,
     model_names: tuple[str, ...] | None = None,
+    progress_callback: ProgressCallback | None = None,
 ) -> tuple[dict[str, Any], list[dict[str, Any]]]:
     """Evaluate both E1a variants with precomputed outer and inner grouped folds."""
     if bootstrap_samples < 1 or permutations < 1:
@@ -162,6 +176,14 @@ def run_e1a(
     metadata = {row["sample_id"]: row for row in rows}
     predictions: list[dict[str, Any]] = []
     fold_results: list[dict[str, Any]] = []
+    selected_model_names = model_names or tuple(_models(0))
+    unknown = set(selected_model_names) - set(_models(0))
+    if unknown:
+        raise ValueError(f"unknown model names: {sorted(unknown)}")
+    fold_count = sum(len(repetition["folds"]) for repetition in splits["repetitions"])
+    total_fits = len(feature_cache["variants"]) * fold_count * len(selected_model_names)
+    completed_fits = 0
+    _notify(progress_callback, {"event": "run_started", "total_fits": total_fits})
 
     for variant, specification in feature_cache["variants"].items():
         columns = np.asarray(specification["indices"], dtype=int)
@@ -170,10 +192,6 @@ def run_e1a(
             repeat = int(repetition["repeat"])
             seed = int(repetition["seed"])
             available = _models(seed)
-            selected_models = model_names or tuple(available)
-            unknown = set(selected_models) - set(available)
-            if unknown:
-                raise ValueError(f"unknown model names: {sorted(unknown)}")
             for fold in repetition["folds"]:
                 train_idx = _index(fold["train"]["sample_ids"], positions)
                 test_idx = _index(fold["test"]["sample_ids"], positions)
@@ -185,7 +203,18 @@ def run_e1a(
                     )
                     for inner in fold["inner_folds"]
                 ]
-                for model_name in selected_models:
+                for model_name in selected_model_names:
+                    position = completed_fits + 1
+                    progress_fields = {
+                        "position": position,
+                        "total_fits": total_fits,
+                        "variant": variant,
+                        "model": model_name,
+                        "repeat": repeat,
+                        "fold": int(fold["fold"]),
+                    }
+                    _notify(progress_callback, {"event": "fit_started", **progress_fields})
+                    started = perf_counter()
                     estimator, grid = available[model_name]
                     if grid is None:
                         fitted = estimator.fit(x[train_idx], target[train_idx])
@@ -206,6 +235,7 @@ def run_e1a(
                         inner_score = float(search.best_score_)
                     predicted = fitted.predict(x[test_idx]).tolist()
                     truth = target[test_idx].tolist()
+                    fold_metrics = _metrics(truth, predicted, labels)
                     fold_results.append(
                         {
                             "variant": variant,
@@ -215,7 +245,7 @@ def run_e1a(
                             "fold": int(fold["fold"]),
                             "best_params": best_params,
                             "inner_balanced_accuracy": inner_score,
-                            **_metrics(truth, predicted, labels),
+                            **fold_metrics,
                         }
                     )
                     for index, prediction in zip(test_idx, predicted):
@@ -233,6 +263,16 @@ def run_e1a(
                                 "predicted_composer": str(prediction),
                             }
                         )
+                    completed_fits += 1
+                    _notify(
+                        progress_callback,
+                        {
+                            "event": "fit_completed",
+                            **progress_fields,
+                            "elapsed_seconds": perf_counter() - started,
+                            "balanced_accuracy": fold_metrics["balanced_accuracy"],
+                        },
+                    )
 
     summaries: list[dict[str, Any]] = []
     combinations = sorted({(row["variant"], row["model"]) for row in predictions})
@@ -285,6 +325,7 @@ def run_e1a(
         "summaries": summaries,
         "fold_results": fold_results,
     }
+    _notify(progress_callback, {"event": "run_completed", "total_fits": total_fits})
     return result, predictions
 
 

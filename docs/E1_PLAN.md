@@ -195,6 +195,48 @@ Nie tworzymy jednego stałego test setu przy tak małej liczbie grup. Zewnętrzn
 foldy pełnią rolę niewidzianych testów, a ich predykcje są agregowane dopiero po
 zakończeniu wszystkich foldów.
 
+### Obserwowalność długich przebiegów
+
+Klasyfikacja musi raportować postęp co najmniej na poziomie wariantu cech,
+modelu, powtórzenia i zewnętrznego foldu. Dla każdego dopasowania zapisujemy
+zdarzenie rozpoczęcia i zakończenia, czas wykonania oraz balanced accuracy foldu.
+Postęp jest widoczny w terminalu i równolegle dopisywany do `progress.jsonl`,
+aby można było odróżnić kosztowne strojenie od zawieszenia procesu. Log postępu
+jest artefaktem pomocniczym; autorytatywne metryki nadal pochodzą z kompletnego
+`e1a_results.json` zapisywanego atomowo po zakończeniu przebiegu.
+
+### Analiza dodatkowa: rozpoznawanie kompozytora spoza zbioru (open set)
+
+Główny E1 pozostaje klasyfikacją **zamkniętą** Bacha, Beethovena i Chopina. Jest
+to właściwy protokół dla pytania, czy zdefiniowane cechy rozróżniają te trzy
+podzbiory na niewidzianych dziełach. Wyniku nie należy jednak interpretować jako
+zdolności rozpoznania dowolnego kompozytora: klasyfikator zamknięty zawsze
+przypisze jedną z trzech znanych etykiet, także dla materiału spoza domeny.
+
+Po E1b należy wykonać osobną analizę `E1-open`, bez włączania jej do głównego
+kryterium sukcesu E1:
+
+- model bazowy jest uczony wyłącznie na trzech klasach E1;
+- wynik może zostać odrzucony jako `unknown` na podstawie wcześniej ustalonego
+  progu pewności lub odległości od rozkładu cech klas znanych;
+- próg dobiera się bez użycia kompozytorów przeznaczonych do końcowego testu
+  open-set;
+- dodatkowych kompozytorów ASAP dzieli się **po kompozytorach** na zbiór
+  kalibracyjny i testowy, aby ten sam nie wystąpił po obu stronach;
+- nie tworzy się jednej uczonej klasy `other`, ponieważ łączyłaby niejednorodne
+  style i zamieniałaby problem z powrotem w zwykłą klasyfikację zamkniętą;
+- jako kontrolę wykonuje się rotacyjne leave-one-composer-out dla trzech klas E1:
+  dwie klasy są znane, a trzecia pełni rolę `unknown`;
+- raport obejmuje AUROC/AUPRC dla `known` kontra `unknown`, false-positive rate
+  dla ustalonego true-positive rate, recall klasy `unknown`, pokrycie oraz
+  balanced accuracy wśród zaakceptowanych próbek znanych.
+
+ASAP zawiera dodatkowy materiał m.in. Liszta, Schuberta, Haydna i Schumanna,
+więc tę analizę można przygotować bez pobierania nowego korpusu. Najpierw trzeba
+jednak objąć te dane tym samym audytem kanonizacji, grupowania i kontroli SHA co
+trzy klasy główne. Analiza ma charakter testu odporności i zakresu stosowalności,
+nie dowodu atrybucji autorstwa.
+
 ## Etapy implementacji i bramki jakości
 
 ### E1.0 — środowisko i audyt surowych danych
@@ -235,7 +277,9 @@ Zakres:
 - ekstrakcja i cache cech z numerem schematu;
 - dummy, logistic regression i random forest;
 - porównanie `legacy_full` z `legacy_score_only`;
-- kompletny raport metryk i predykcji.
+- kompletny raport metryk i predykcji;
+- terminalowy postęp dopasowań oraz strukturalny `progress.jsonl` z czasami
+  wykonania foldów.
 
 **Go/no-go:** pipeline jest deterministyczny dla tego samego seeda, cechy
 walidacyjne nie uczestniczą w skalowaniu ani wyborze hiperparametrów, dummy daje
@@ -262,6 +306,8 @@ Zakres:
 - konfiguracja, seedy, wersje bibliotek, commit i fingerprint danych;
 - tabela wszystkich wykluczeń oraz predykcji;
 - wykresy macierzy pomyłek, wyników foldów, ablacji i ważności cech.
+- jawne ograniczenie wyniku closed-set oraz, jeśli ukończono `E1-open`, osobny
+  raport skuteczności odrzucania nieznanych kompozytorów.
 
 Wynik negatywny jest poprawnym rezultatem E1: oznacza konieczność zmiany cech lub
 korpusu przed użyciem klasyfikatora jako funkcji celu GA.
