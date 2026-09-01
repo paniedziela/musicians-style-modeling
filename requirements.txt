@@ -8,6 +8,7 @@ torch==2.2.2                # PyTorch >= 2.0 - framework Modelu_GAN (StarGAN / C
 # --- Obliczenia numeryczne i statystyka ---
 numpy==1.26.4               # macierze pianoroll, RNG algorytmu genetycznego
 scipy==1.13.1               # testy statystyczne (ttest_rel, wilcoxon), odległość Mahalanobisa
+scikit-learn==1.5.1         # klasyfikatory i grouped CV eksperymentu E1
 
 # --- Obsługa MIDI ---
 mido==1.3.2                 # parsing niskopoziomowy SMF (Parser_MIDI / Pretty_Printer_MIDI)

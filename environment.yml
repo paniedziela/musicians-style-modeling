@@ -15,6 +15,7 @@ dependencies:
   # --- Obliczenia numeryczne i statystyka ---
   - numpy=1.26.4
   - scipy=1.13.1
+  - scikit-learn=1.5.1
   # --- Wizualizacja ---
   - matplotlib=3.8.4
   # --- Konfiguracja i logowanie ---

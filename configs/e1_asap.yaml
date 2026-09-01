@@ -1,0 +1,13 @@
+experiment_name: e1_asap
+schema_version: "e1.0.0"
+dataset_root: datasets/asap-dataset-1.2
+output_dir: datasets/derived/e1_asap
+composers:
+  - Bach
+  - Beethoven
+  - Chopin
+minimum_samples_per_class: 30
+expected_fingerprints:
+  metadata.csv: b327d92e498e281b381161ee387dacfd4b1c360c9c240d9107171f78e571b2a5
+  README.md: 4c0cf082cbed77fa4e1e471db0c5e4352aca8c3a1a6b025f8225c12228a638af
+  LICENSE.md: af662157a4f2e47b5fefde500141853e1f7d160ba0dda95546229b5e60a93f6d
