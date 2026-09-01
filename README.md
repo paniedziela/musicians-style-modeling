@@ -16,6 +16,8 @@ i transferu stylu pomiędzy plikami MIDI.
   kod, zgodność z celem pracy i przyczyny słabych wyników.
 - [Plan naprawczy](docs/PLAN_NAPRAWCZY.md) — kolejność prac, kryteria akceptacji
   i minimalny program eksperymentów.
+- [Plan eksperymentu E1](docs/E1_PLAN.md) — przygotowanie lokalnego ASAP,
+  podział bez przecieku oraz etapy E1.0–E1.4.
 - [Porządkowanie literatury](docs/LITERATURA.md) — kryteria redukcji 173 pozycji,
   literatura rdzeniowa i proponowana struktura przeglądu.
 

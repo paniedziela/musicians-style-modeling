@@ -8,8 +8,8 @@ metryki i baseline'y będą wiarygodne.
 
 Hipoteza badawcza powinna mieć dwie części:
 
-1. wybrany zestaw cech symbolicznych pozwala rozróżniać utwory Bacha, Chopina i
-   Mozarta lepiej niż baseline losowy;
+1. wybrany zestaw cech symbolicznych pozwala rozróżniać utwory Bacha,
+   Beethovena i Chopina lepiej niż baseline losowy;
 2. transformacja optymalizowana w kierunku artysty zwiększa zgodność z jego
    profilem stylu, zachowując rozpoznawalną melodię i długość wejścia.
 
@@ -40,6 +40,8 @@ jednym eksperymencie o stylu kompozytorskim.
 
 Możliwe źródła:
 
+- lokalny [ASAP](E1_PLAN.md) — score MIDI dla Bacha, Beethovena i Chopina jako
+  korpus pierwszego eksperymentu E1;
 - obecny korpus po ręcznym filtrowaniu i udokumentowaniu pochodzenia;
 - [MAESTRO](https://magenta.withgoogle.com/datasets/maestro) — dane fortepianowe,
   metadane kompozytorów i gotowy split, ale ograniczona liczba kompozytorów;
@@ -358,3 +360,6 @@ Po ustaleniu metody:
 
 Najpierw E1. Bez niego nie wiadomo, czy dane i wybrane cechy w ogóle zawierają
 sygnał odpowiadający formalnemu celowi pracy.
+
+Szczegółowy, etapowy protokół dla pobranego ASAP znajduje się w
+[planie eksperymentu E1](E1_PLAN.md).
