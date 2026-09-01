@@ -1,54 +1,120 @@
 # Modelowanie stylu artystycznego muzyków
 
-System badawczy realizujący transfer stylu artystycznego pomiędzy utworami w
-formacie MIDI. Praca inżynierska, Wydział Elektroniki, Telekomunikacji i
-Informatyki Politechniki Gdańskiej.
+Repozytorium badawcze pracy inżynierskiej dotyczącej analizy stylu kompozytorskiego
+i transferu stylu pomiędzy plikami MIDI.
 
-System składa się z trzech głównych komponentów:
+> **Stan projektu:** prototyp badawczy, nie gotowy system. Parser MIDI, ekstrakcja
+> podstawowych cech, infrastruktura eksperymentów, ewaluacja i operatory GA są
+> przetestowane jednostkowo. Potok GAN wymaga jednak przebudowy przygotowania
+> danych i inferencji, a tryb nazwany `per_artist` nie implementuje obecnie pełnego
+> CycleGAN-u A↔B. Nie należy interpretować dotychczasowych plików wynikowych jako
+> miarodajnego wyniku eksperymentu.
 
-- **Ekstraktor_Cech** - analiza cech muzycznych zbioru plików MIDI,
-- **Model_GAN** - generatywna sieć neuronowa (StarGAN warunkowany / CycleGAN per-artysta),
-- **Algorytm_Genetyczny** - ewolucyjna metoda transformacji MIDI optymalizująca cechy stylu.
+## Od czego zacząć
 
-## Wymagania
+- [Audyt repozytorium](docs/AUDYT_REPOZYTORIUM.md) — co faktycznie implementuje
+  kod, zgodność z celem pracy i przyczyny słabych wyników.
+- [Plan naprawczy](docs/PLAN_NAPRAWCZY.md) — kolejność prac, kryteria akceptacji
+  i minimalny program eksperymentów.
+- [Porządkowanie literatury](docs/LITERATURA.md) — kryteria redukcji 173 pozycji,
+  literatura rdzeniowa i proponowana struktura przeglądu.
 
-- Python >= 3.10
-- Zależności w `requirements.txt` (pip) lub `environment.yml` (conda)
+## Rekomendowany zakres pracy
+
+Rdzeniem pracy powinien być następujący, weryfikowalny ciąg:
+
+1. przygotowanie jednorodnego korpusu symbolicznego dla kilku kompozytorów;
+2. ekstrakcja i selekcja cech, które rzeczywiście rozróżniają kompozytorów;
+3. walidacja cech klasyfikatorem na podziale bez przecieku utworów;
+4. transfer stylu przez interpretowalną, wielokryterialną optymalizację/GA;
+5. porównanie z prostymi baseline'ami, a opcjonalnie z naprawionym modelem
+   neuronowym.
+
+Takie ujęcie odpowiada formalnemu celowi pracy lepiej niż uczynienie GAN-u
+jedynym artefaktem. Warunkowany GAN może pozostać eksperymentem dodatkowym.
+
+## Aktualne komponenty
+
+| Obszar | Implementacja | Aktualny status |
+|---|---|---|
+| MIDI | parser, writer, pianoroll | działa, lecz pianoroll jest stratny |
+| Cechy | 42 wartości: tempo, histogramy, gęstość, długości, pauzy | działa; zestaw jest zbyt mały do tezy o stylu |
+| `conditional` | pojedynczy generator wielodomenowy inspirowany StarGAN | prototyp; wymaga segmentacji, walidacji i stabilizacji |
+| `per_artist` | pojedynczy generator i dyskryminator | **nie jest pełnym CycleGAN-em** |
+| GA | czteroparametrowa transformacja globalna | działa technicznie; wymaga nowej funkcji celu i bogatszych operatorów |
+| Ewaluacja | odległości cech, testy statystyczne, odsłuch | infrastruktura jest, brak kompletnego eksperymentu |
+| CLI | `acquire`, `train`, `infer`, `evaluate` | GA i tryb łączony są dostępne tylko przez API Pythona |
 
 ## Instalacja
 
-```bash
-# wariant pip
+Projekt zakłada Python 3.10 oraz środowisko z PyTorch. Na Windows:
+
+```powershell
 python -m venv .venv
-.venv\Scripts\activate        # Windows
+.venv\Scripts\Activate.ps1
 pip install -e .[dev]
-
-# wariant conda
-conda env create -f environment.yml
-conda activate musicians-style
 ```
 
-## Struktura projektu
+Wariant Conda jest opisany w `environment.yml`. Wersję PyTorch/CUDA należy
+dopasować do sterownika GPU; deklaracje w `pyproject.toml` i `requirements.txt`
+nie są obecnie jednym spójnym źródłem prawdy.
 
+## Podstawowe polecenia
+
+```powershell
+# walidacja danych i manifesty
+midi-style acquire --config configs/custom_conditional.yaml
+
+# trening prototypowego modelu warunkowanego
+midi-style train --config configs/custom_conditional.yaml
+
+# inferencja GAN
+midi-style infer `
+  --config configs/custom_conditional.yaml `
+  --checkpoint experiments/<eksperyment>/checkpoints/<plik>.pt `
+  --input <wejscie.mid> `
+  --target_artist bach `
+  --output <wynik.mid>
+
+# ewaluacja przygotowanych par wejście-wyjście
+midi-style evaluate `
+  --pairs <katalog_par> `
+  --style <manifest_artysty.json> `
+  --metric mahalanobis
 ```
-src/musicians_style/     # kod źródłowy pakietu
-  data/                  # Akwizytor_Danych, Manifest_Zbioru
-  midi/                  # Parser_MIDI, Pretty_Printer_MIDI, Pianoroll
-  features/              # Ekstraktor_Cech
-  models/                # StarGAN, CycleGAN, funkcje strat
-  training/              # Pipeline_Treningu
-  ga/                    # Algorytm_Genetyczny
-  inference/             # transfer stylu
-  evaluation/            # ewaluacja obiektywna i subiektywna
-tests/                   # unit / property / integration
-configs/                 # pliki konfiguracyjne YAML/JSON
-experiments/             # katalogi wynikowe per uruchomienie
+
+Do czasu wykonania etapów P0–P2 z [planu naprawczego](docs/PLAN_NAPRAWCZY.md)
+nie warto uruchamiać długiego treningu GAN.
+
+## Struktura
+
+```text
+src/musicians_style/
+  data/          pozyskiwanie, walidacja i manifesty
+  midi/          parser, writer i konwersja pianoroll
+  features/      ekstrakcja cech symbolicznych
+  models/        prototypy StarGAN/CycleGAN i funkcje strat
+  training/      dataset i trener GAN
+  ga/            algorytm genetyczny i transformacje
+  inference/     GAN, GA i przepływ łączony (API)
+  evaluation/    metryki obiektywne i testy odsłuchowe
+tests/           testy unit/property/integration
+configs/         konfiguracje przykładowe
+docs/            dokumentacja audytu i plan dalszych prac
 ```
+
+`datasets/`, `experiments/`, `Literatura/`, `logseq_pages/` i modele są lokalnymi
+artefaktami ignorowanymi przez Git.
 
 ## Testy
 
-```bash
-pytest                   # wszystkie testy
-pytest -m property       # tylko testy własnościowe (Hypothesis)
-pytest -m "not slow"     # pominięcie testów kosztownych
+```powershell
+pytest
+pytest -m property
+pytest -m "not slow"
 ```
+
+Stan audytu z 1 września 2026: **434 testy przechodzą**. Nie oznacza to jeszcze
+poprawności metody badawczej: brakuje m.in. testu pełnego utworu dłuższego niż
+jedno okno, prawdziwego testu zachowania długości, porównania domen A↔B oraz
+walidacji jakości transferu na wydzielonym zbiorze.
