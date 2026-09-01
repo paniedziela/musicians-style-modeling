@@ -6,8 +6,10 @@ import pytest
 
 from musicians_style.e1.classification import (
     run_e1a,
+    run_e1b,
     validate_oof_predictions,
     write_e1a_results,
+    write_e1b_results,
 )
 from musicians_style.e1.features import build_legacy_feature_cache
 from musicians_style.e1.splits import build_e1_splits
@@ -132,3 +134,73 @@ def test_writer_records_input_hashes_and_completed_run(tmp_path) -> None:
     assert (output / "inputs" / "manifest.json").is_file()
     assert (output / "inputs" / "splits.json").is_file()
     assert (output / "inputs" / "feature_cache.json").is_file()
+
+
+def test_e1b_reports_fold_local_importance_and_form_errors(tmp_path) -> None:
+    manifest, splits = _inputs()
+    rows = []
+    for sample in manifest["samples"]:
+        composer_index = ("Bach", "Chopin", "Beethoven").index(sample["composer"])
+        number = int(sample["sample_id"].rsplit("-", 1)[1])
+        rows.append(
+            {
+                "sample_id": sample["sample_id"],
+                "composer": sample["composer"],
+                "group_id": sample["group_id"],
+                "sha256": sample["sha256"],
+                "title": f"Sonata_{number}",
+                "form": "sonata",
+                "values": [float(composer_index), float(number % 2), float(number)],
+            }
+        )
+    cache = {
+        "features_schema_version": "e1.3.0",
+        "importance_variant": "composition_full",
+        "feature_contract": [
+            {"name": "pitch_signal", "group": "pitch", "unit": "midi_note"},
+            {"name": "rhythm_signal", "group": "rhythm", "unit": "ratio"},
+            {"name": "structure_signal", "group": "structure", "unit": "ratio"},
+        ],
+        "variants": {
+            "composition_full": {
+                "indices": [0, 1, 2],
+                "feature_names": ["pitch_signal", "rhythm_signal", "structure_signal"],
+            }
+        },
+        "samples": rows,
+    }
+    result, predictions = run_e1b(
+        cache,
+        splits,
+        bootstrap_samples=5,
+        permutations=5,
+        include_group_sensitivity=False,
+        model_names=("logistic_regression",),
+        permutation_importance_repeats=2,
+    )
+    assert result["experiment"] == "E1.3"
+    assert len(result["permutation_importance"]["folds"]) == 5
+    assert result["permutation_importance"]["by_feature"]
+    assert result["permutation_importance"]["by_group"]
+    assert result["error_and_form_analysis"]["by_form"]
+    assert all(row["form"] == "sonata" for row in predictions)
+
+    cache_path = tmp_path / "composition_features.json"
+    splits_path = tmp_path / "splits.json"
+    cache_path.write_text(json.dumps(cache), encoding="utf-8")
+    splits_path.write_text(json.dumps(splits), encoding="utf-8")
+    result_path, predictions_path, _ = write_e1b_results(
+        cache_path,
+        splits_path,
+        tmp_path / "run",
+        bootstrap_samples=5,
+        permutations=5,
+        include_group_sensitivity=False,
+        model_names=("dummy_most_frequent",),
+        permutation_importance_repeats=0,
+    )
+    assert result_path.name == "e1b_results.json"
+    assert predictions_path.name == "e1b_predictions.json"
+    run_manifest = json.loads((tmp_path / "run" / "run_manifest.json").read_text())
+    assert run_manifest["experiment"] == "E1.3"
+    assert run_manifest["status"] == "completed"

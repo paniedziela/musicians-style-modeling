@@ -1,4 +1,4 @@
-"""Leakage-safe nested classification and reporting for the E1a baseline."""
+"""Leakage-safe nested classification and reporting for E1a and E1b."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ import hashlib
 import platform
 import shutil
 import subprocess
-from collections import defaultdict
+from collections import Counter, defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
 from time import perf_counter
@@ -19,6 +19,7 @@ from sklearn.base import BaseEstimator, clone
 from sklearn.dummy import DummyClassifier
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.feature_selection import VarianceThreshold
+from sklearn.inspection import permutation_importance
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import balanced_accuracy_score, confusion_matrix, f1_score, recall_score
 from sklearn.model_selection import GridSearchCV
@@ -30,6 +31,10 @@ PREDICTIONS_FILENAME = "e1a_predictions.json"
 RESULTS_SCHEMA_VERSION = "e1.2.1"
 RUN_MANIFEST_FILENAME = "run_manifest.json"
 ProgressCallback = Callable[[dict[str, Any]], None]
+
+E1B_RESULTS_FILENAME = "e1b_results.json"
+E1B_PREDICTIONS_FILENAME = "e1b_predictions.json"
+E1B_RESULTS_SCHEMA_VERSION = "e1.3.0"
 
 
 def _notify(callback: ProgressCallback | None, event: dict[str, Any]) -> None:
@@ -151,6 +156,178 @@ def _metrics(y_true: list[str], y_pred: list[str], labels: list[str]) -> dict[st
         "macro_f1": float(f1_score(y_true, y_pred, labels=labels, average="macro", zero_division=0)),
         "confusion_matrix": confusion_matrix(y_true, y_pred, labels=labels).tolist(),
         "labels": labels,
+    }
+
+
+def _permutation_importance_for_fold(
+    estimator: BaseEstimator,
+    x: np.ndarray,
+    y: np.ndarray,
+    *,
+    feature_names: list[str],
+    feature_groups: dict[str, str],
+    labels: list[str],
+    repeats: int,
+    seed: int,
+) -> dict[str, Any]:
+    """Measure held-out importance without using it for model selection."""
+
+    def scorer(fitted: BaseEstimator, values: np.ndarray, truth: np.ndarray) -> float:
+        return float(
+            recall_score(
+                truth,
+                fitted.predict(values),
+                labels=labels,
+                average="macro",
+                zero_division=0,
+            )
+        )
+
+    measured = permutation_importance(
+        estimator,
+        x,
+        y,
+        scoring=scorer,
+        n_repeats=repeats,
+        random_state=seed,
+        n_jobs=1,
+    )
+    features = [
+        {
+            "feature": name,
+            "group": feature_groups.get(name, "unknown"),
+            "importance_mean": float(measured.importances_mean[index]),
+            "importance_std": float(measured.importances_std[index]),
+        }
+        for index, name in enumerate(feature_names)
+    ]
+    groups: dict[str, list[int]] = defaultdict(list)
+    for index, name in enumerate(feature_names):
+        groups[feature_groups.get(name, "unknown")].append(index)
+    group_rows = []
+    for group, indices in sorted(groups.items()):
+        # Sum within each repeat before computing dispersion so the group total
+        # remains in balanced-accuracy points.
+        totals = measured.importances[np.asarray(indices)].sum(axis=0)
+        group_rows.append(
+            {
+                "group": group,
+                "importance_mean": float(totals.mean()),
+                "importance_std": float(totals.std()),
+            }
+        )
+    return {"features": features, "groups": group_rows}
+
+
+def _summarize_importance(folds: list[dict[str, Any]]) -> dict[str, Any]:
+    feature_values: dict[tuple[str, str, str], list[float]] = defaultdict(list)
+    group_values: dict[tuple[str, str], list[float]] = defaultdict(list)
+    for fold in folds:
+        model = fold["model"]
+        for row in fold["features"]:
+            feature_values[(model, row["group"], row["feature"])].append(
+                row["importance_mean"]
+            )
+        for row in fold["groups"]:
+            group_values[(model, row["group"])].append(row["importance_mean"])
+    return {
+        "by_feature": [
+            {
+                "model": model,
+                "group": group,
+                "feature": feature,
+                "mean_across_folds": float(np.mean(values)),
+                "std_across_folds": float(np.std(values)),
+                "fold_count": len(values),
+            }
+            for (model, group, feature), values in sorted(feature_values.items())
+        ],
+        "by_group": [
+            {
+                "model": model,
+                "group": group,
+                "mean_across_folds": float(np.mean(values)),
+                "std_across_folds": float(np.std(values)),
+                "fold_count": len(values),
+            }
+            for (model, group), values in sorted(group_values.items())
+        ],
+    }
+
+
+def _error_and_form_analysis(predictions: list[dict[str, Any]]) -> dict[str, Any]:
+    rows = [
+        row
+        for row in predictions
+        if row["analysis"] == "all_samples" and row.get("form")
+    ]
+    if not rows:
+        return {}
+    by_form: dict[tuple[str, str, str], list[dict[str, Any]]] = defaultdict(list)
+    confusions: Counter[tuple[str, str, str, str]] = Counter()
+    sample_errors: Counter[tuple[str, str, str, str, str]] = Counter()
+    for row in rows:
+        key = (row["variant"], row["model"], row["form"])
+        by_form[key].append(row)
+        if row["true_composer"] != row["predicted_composer"]:
+            confusions[
+                (
+                    row["variant"],
+                    row["model"],
+                    row["true_composer"],
+                    row["predicted_composer"],
+                )
+            ] += 1
+            sample_errors[
+                (
+                    row["variant"],
+                    row["model"],
+                    row["sample_id"],
+                    row["title"],
+                    row["form"],
+                )
+            ] += 1
+    return {
+        "by_form": [
+            {
+                "variant": variant,
+                "model": model,
+                "form": form,
+                "prediction_count": len(selected),
+                "accuracy": float(
+                    np.mean(
+                        [
+                            row["true_composer"] == row["predicted_composer"]
+                            for row in selected
+                        ]
+                    )
+                ),
+            }
+            for (variant, model, form), selected in sorted(by_form.items())
+        ],
+        "confusion_pairs": [
+            {
+                "variant": variant,
+                "model": model,
+                "true_composer": truth,
+                "predicted_composer": predicted,
+                "count": count,
+            }
+            for (variant, model, truth, predicted), count in sorted(confusions.items())
+        ],
+        "misclassified_samples": [
+            {
+                "variant": variant,
+                "model": model,
+                "sample_id": sample_id,
+                "title": title,
+                "form": form,
+                "error_count_across_repeats": count,
+            }
+            for (variant, model, sample_id, title, form), count in sorted(
+                sample_errors.items(), key=lambda item: (-item[1], item[0])
+            )
+        ],
     }
 
 
@@ -381,10 +558,16 @@ def run_e1a(
     retraining_permutations: int = 0,
     include_group_sensitivity: bool = True,
     model_names: tuple[str, ...] | None = None,
+    permutation_importance_repeats: int = 0,
     progress_callback: ProgressCallback | None = None,
 ) -> tuple[dict[str, Any], list[dict[str, Any]]]:
-    """Evaluate both E1a variants with precomputed outer and inner grouped folds."""
-    if bootstrap_samples < 1 or permutations < 1 or retraining_permutations < 0:
+    """Evaluate cache variants with precomputed outer and inner grouped folds."""
+    if (
+        bootstrap_samples < 1
+        or permutations < 1
+        or retraining_permutations < 0
+        or permutation_importance_repeats < 0
+    ):
         raise ValueError("bootstrap/permutation counts are outside their valid ranges")
     rows = feature_cache.get("samples", [])
     ids = [row["sample_id"] for row in rows]
@@ -397,6 +580,11 @@ def run_e1a(
     metadata = {row["sample_id"]: row for row in rows}
     predictions: list[dict[str, Any]] = []
     fold_results: list[dict[str, Any]] = []
+    importance_folds: list[dict[str, Any]] = []
+    importance_variant = feature_cache.get("importance_variant")
+    feature_groups = {
+        row["name"]: row["group"] for row in feature_cache.get("feature_contract", [])
+    }
     selected_model_names = model_names or tuple(_models(0))
     unknown = set(selected_model_names) - set(_models(0))
     if unknown:
@@ -486,6 +674,35 @@ def run_e1a(
                         predicted = fitted.predict(x[test_idx]).tolist()
                         truth = target[test_idx].tolist()
                         fold_metrics = _metrics(truth, predicted, labels)
+                        if (
+                            permutation_importance_repeats > 0
+                            and variant == importance_variant
+                            and analysis == "all_samples"
+                            and model_name != "dummy_most_frequent"
+                        ):
+                            importance = _permutation_importance_for_fold(
+                                fitted,
+                                x[test_idx],
+                                target[test_idx],
+                                feature_names=list(specification["feature_names"]),
+                                feature_groups=feature_groups,
+                                labels=labels,
+                                repeats=permutation_importance_repeats,
+                                seed=(
+                                    seed
+                                    + int(fold["fold"]) * 1009
+                                    + selected_model_names.index(model_name)
+                                ),
+                            )
+                            importance_folds.append(
+                                {
+                                    "variant": variant,
+                                    "model": model_name,
+                                    "repeat": repeat,
+                                    "fold": int(fold["fold"]),
+                                    **importance,
+                                }
+                            )
                         fold_results.append(
                             {
                                 "analysis": analysis,
@@ -501,20 +718,22 @@ def run_e1a(
                         )
                         for index, prediction in zip(test_idx, predicted):
                             sample_id = ids[int(index)]
-                            predictions.append(
-                                {
-                                    "analysis": analysis,
-                                    "variant": variant,
-                                    "model": model_name,
-                                    "repeat": repeat,
-                                    "fold": int(fold["fold"]),
-                                    "sample_id": sample_id,
-                                    "group_id": metadata[sample_id]["group_id"],
-                                    "sha256": metadata[sample_id]["sha256"],
-                                    "true_composer": str(target[int(index)]),
-                                    "predicted_composer": str(prediction),
-                                }
-                            )
+                            prediction_row = {
+                                "analysis": analysis,
+                                "variant": variant,
+                                "model": model_name,
+                                "repeat": repeat,
+                                "fold": int(fold["fold"]),
+                                "sample_id": sample_id,
+                                "group_id": metadata[sample_id]["group_id"],
+                                "sha256": metadata[sample_id]["sha256"],
+                                "true_composer": str(target[int(index)]),
+                                "predicted_composer": str(prediction),
+                            }
+                            for field in ("title", "form"):
+                                if field in metadata[sample_id]:
+                                    prediction_row[field] = metadata[sample_id][field]
+                            predictions.append(prediction_row)
                         completed_fits += 1
                         _notify(
                             progress_callback,
@@ -592,6 +811,12 @@ def run_e1a(
             "retraining_permutations": retraining_permutations,
             "retraining_permutation_method": "group labels, fixed pipelines, first predeclared repeat",
             "analysis_modes": list(analysis_modes),
+            "permutation_importance_repeats": permutation_importance_repeats,
+            "permutation_importance_scope": (
+                "outer test folds, all_samples, non-dummy models, importance_variant only"
+                if permutation_importance_repeats
+                else None
+            ),
         },
         "environment": {
             "python": platform.python_version(),
@@ -603,21 +828,52 @@ def run_e1a(
         "sensitivity_selections": sensitivity_selections,
         "oof_validation": oof_validation,
         "retrained_group_permutation_tests": retrained_tests,
+        "permutation_importance": {
+            "variant": importance_variant,
+            "folds": importance_folds,
+            **_summarize_importance(importance_folds),
+        },
+        "error_and_form_analysis": _error_and_form_analysis(predictions),
     }
     _notify(progress_callback, {"event": "run_completed", "total_fits": total_fits})
     return result, predictions
 
 
-def write_e1a_results(
+def run_e1b(
+    feature_cache: dict[str, Any],
+    splits: dict[str, Any],
+    *,
+    permutation_importance_repeats: int = 10,
+    **kwargs: Any,
+) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+    """Run the E1.3 protocol on composition features and their group ablations."""
+    if feature_cache.get("features_schema_version") != "e1.3.0":
+        raise ValueError("run_e1b requires an e1.3.0 composition feature cache")
+    result, predictions = run_e1a(
+        feature_cache,
+        splits,
+        permutation_importance_repeats=permutation_importance_repeats,
+        **kwargs,
+    )
+    result["results_schema_version"] = E1B_RESULTS_SCHEMA_VERSION
+    result["experiment"] = "E1.3"
+    return result, predictions
+
+
+def _write_classification_results(
     feature_cache_path: Path | str,
     splits_path: Path | str,
     output_dir: Path | str,
     *,
+    experiment: str,
+    results_filename: str,
+    predictions_filename: str,
+    runner: Callable[..., tuple[dict[str, Any], list[dict[str, Any]]]],
     config_path: Path | str | None = None,
     manifest_path: Path | str | None = None,
     **kwargs: Any,
 ) -> tuple[Path, Path, dict[str, Any]]:
-    """Run E1.2 and atomically write its metrics and sample-level OOF predictions."""
+    """Atomically run and persist a classification stage with provenance."""
     cache_path = Path(feature_cache_path).resolve()
     split_path = Path(splits_path).resolve()
     cache = json.loads(cache_path.read_text(encoding="utf-8"))
@@ -653,7 +909,7 @@ def write_e1a_results(
     run_manifest_path = destination / RUN_MANIFEST_FILENAME
     run_manifest = {
         "run_schema_version": "e1.run.1.0",
-        "experiment": "E1.2",
+        "experiment": experiment,
         "status": "running",
         "started_at_utc": datetime.now(timezone.utc).isoformat(),
         "code_commit": _git_commit(),
@@ -669,7 +925,7 @@ def write_e1a_results(
     }
     _atomic_json(run_manifest_path, run_manifest)
     try:
-        result, predictions = run_e1a(cache, splits, **kwargs)
+        result, predictions = runner(cache, splits, **kwargs)
     except BaseException as exc:
         run_manifest.update(
             {
@@ -685,8 +941,8 @@ def write_e1a_results(
         "inputs": inputs,
         "run_manifest": RUN_MANIFEST_FILENAME,
     }
-    result_path = destination / RESULTS_FILENAME
-    predictions_path = destination / PREDICTIONS_FILENAME
+    result_path = destination / results_filename
+    predictions_path = destination / predictions_filename
     for path, payload in ((result_path, result), (predictions_path, predictions)):
         _atomic_json(path, payload)
     run_manifest.update(
@@ -694,9 +950,9 @@ def write_e1a_results(
             "status": "completed",
             "finished_at_utc": datetime.now(timezone.utc).isoformat(),
             "outputs": {
-                "results": {"path": RESULTS_FILENAME, "sha256": _sha256(result_path)},
+                "results": {"path": results_filename, "sha256": _sha256(result_path)},
                 "predictions": {
-                    "path": PREDICTIONS_FILENAME,
+                    "path": predictions_filename,
                     "sha256": _sha256(predictions_path),
                 },
             },
@@ -705,3 +961,41 @@ def write_e1a_results(
     )
     _atomic_json(run_manifest_path, run_manifest)
     return result_path, predictions_path, result
+
+
+def write_e1a_results(
+    feature_cache_path: Path | str,
+    splits_path: Path | str,
+    output_dir: Path | str,
+    **kwargs: Any,
+) -> tuple[Path, Path, dict[str, Any]]:
+    """Run E1.2 and write metrics plus sample-level OOF predictions."""
+    return _write_classification_results(
+        feature_cache_path,
+        splits_path,
+        output_dir,
+        experiment="E1.2",
+        results_filename=RESULTS_FILENAME,
+        predictions_filename=PREDICTIONS_FILENAME,
+        runner=run_e1a,
+        **kwargs,
+    )
+
+
+def write_e1b_results(
+    feature_cache_path: Path | str,
+    splits_path: Path | str,
+    output_dir: Path | str,
+    **kwargs: Any,
+) -> tuple[Path, Path, dict[str, Any]]:
+    """Run E1.3 and write its separate metrics and OOF predictions."""
+    return _write_classification_results(
+        feature_cache_path,
+        splits_path,
+        output_dir,
+        experiment="E1.3",
+        results_filename=E1B_RESULTS_FILENAME,
+        predictions_filename=E1B_PREDICTIONS_FILENAME,
+        runner=run_e1b,
+        **kwargs,
+    )

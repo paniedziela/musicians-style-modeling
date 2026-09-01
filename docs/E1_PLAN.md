@@ -358,7 +358,12 @@ przenosić ani zmieniać nazw jego plików.
   próbki na grupę, test permutacyjny z ponownym uczeniem i pełna proweniencja
   przebiegu. Do zamrożenia wyniku potrzebny jest finalny przebieg z co najmniej
   99 permutacjami retreningowymi.
-- **E1.3 — następny odseparowany krok:** nowy kontrakt i testy cech
-  kompozycyjnych mierzonych w beatach/metrum.
+- **E1.3 — implementacja domknięta:** wersjonowany kontrakt 93 cech
+  kompozycyjnych mierzonych w beatach/metrum, testy syntetyczne, wariant pełny,
+  wyniki pojedynczych grup i ablacje leave-one-group-out. Klasyfikacja korzysta
+  z tego samego nested grouped CV co E1.2, liczy permutation importance na
+  zewnętrznych foldach oraz zapisuje analizę błędów według form wyprowadzonych z
+  tytułów ASAP. Do zamrożenia wyniku potrzebny jest finalny przebieg E1b z co
+  najmniej 99 permutacjami retreningowymi.
 
 Nie ma potrzeby pobierania teraz MAESTRO, GiantMIDI-Piano ani innego zbioru.

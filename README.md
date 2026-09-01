@@ -78,6 +78,16 @@ python -m musicians_style.e1 --config configs/e1_asap.yaml --stage classify
 python -m musicians_style.e1 --config configs/e1_asap.yaml --stage classify `
   --retraining-permutations 99
 
+# E1.3: 93 cechy kompozycyjne, ablacje grup i klasyfikacja E1b
+python -m musicians_style.e1 --config configs/e1_asap.yaml --stage e1b-features
+python -m musicians_style.e1 --config configs/e1_asap.yaml --stage e1b-classify `
+  --importance-repeats 10
+
+# oba kroki E1.3 w jednym wywołaniu; finalny przebieg dodaje test retreningowy
+python -m musicians_style.e1 --config configs/e1_asap.yaml --stage e1b `
+  --importance-repeats 10 `
+  --retraining-permutations 99
+
 # albo E1.0-E1.2 w jednym przebiegu
 python -m musicians_style.e1 --config configs/e1_asap.yaml --stage all
 
@@ -111,6 +121,13 @@ predykcji OOF z etykietami. Postęp jest widoczny w terminalu i w
 konfiguracji oraz snapshoty manifestu danych, splitów i cache'u cech. Nowy,
 jawny katalog można podać przez `--run-dir`; katalog musi być pusty.
 
+E1.3 zapisuje osobny `composition_features.json`. Kontrakt obejmuje 93 cechy z
+jawną nazwą, grupą i jednostką: pitch, melody, rhythm, texture, harmony oraz
+structure. Cache definiuje wariant pełny, sześć wariantów zawierających tylko
+jedną grupę i sześć ablacji leave-one-group-out. Ważność permutacyjna jest
+liczona wyłącznie dla niedummy modeli pełnego wariantu na niewidzianej części
+każdego zewnętrznego foldu; nie uczestniczy w strojeniu modelu.
+
 Do czasu wykonania etapów P0–P2 z [planu naprawczego](docs/PLAN_NAPRAWCZY.md)
 nie warto uruchamiać długiego treningu GAN.
 
@@ -142,7 +159,7 @@ pytest -m property
 pytest -m "not slow"
 ```
 
-Stan audytu z 1 września 2026: **434 testy przechodzą**. Nie oznacza to jeszcze
+Stan audytu z 1 września 2026: **450 testów przechodzi**. Nie oznacza to jeszcze
 poprawności metody badawczej: brakuje m.in. testu pełnego utworu dłuższego niż
 jedno okno, prawdziwego testu zachowania długości, porównania domen A↔B oraz
 walidacji jakości transferu na wydzielonym zbiorze.

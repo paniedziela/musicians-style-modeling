@@ -9,7 +9,11 @@ from datetime import datetime
 from pathlib import Path
 
 from .asap import load_e1_config, write_e1_artifacts
-from .classification import write_e1a_results
+from .classification import write_e1a_results, write_e1b_results
+from .composition_features import (
+    COMPOSITION_FEATURES_FILENAME,
+    write_composition_feature_cache,
+)
 from .features import FEATURES_FILENAME, write_legacy_feature_cache
 from .splits import SPLITS_FILENAME, write_e1_splits
 
@@ -19,14 +23,17 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--config", default="configs/e1_asap.yaml")
     parser.add_argument(
         "--stage",
-        choices=("audit", "splits", "features", "classify", "all"),
+        choices=(
+            "audit", "splits", "features", "classify", "all",
+            "e1b-features", "e1b-classify", "e1b",
+        ),
         default="audit",
-        help="audit=E1.0, splits=E1.1, features/classify=E1.2",
+        help="audit=E1.0, splits=E1.1, features/classify=E1.2, e1b-*=E1.3",
     )
     parser.add_argument("--experiments-dir", default="experiments")
     parser.add_argument(
         "--run-dir",
-        help="Explicit new output directory for classify; must be absent or empty.",
+        help="Explicit new output directory for E1a/E1b classify; must be absent or empty.",
     )
     parser.add_argument("--bootstrap-samples", type=int, default=2000)
     parser.add_argument(
@@ -39,7 +46,7 @@ def main(argv: list[str] | None = None) -> int:
         "--retraining-permutations",
         type=int,
         default=0,
-        help="Costly group-label permutations with model refitting (recommend 99 for final E1.2).",
+        help="Costly group-label permutations with model refitting (recommend 99 for a final run).",
     )
     parser.add_argument(
         "--skip-group-sensitivity",
@@ -50,6 +57,12 @@ def main(argv: list[str] | None = None) -> int:
         "--quiet-progress",
         action="store_true",
         help="Do not print per-fit progress (progress.jsonl is still written).",
+    )
+    parser.add_argument(
+        "--importance-repeats",
+        type=int,
+        default=10,
+        help="Held-out permutation-importance repeats per E1b fold and feature.",
     )
     args = parser.parse_args(argv)
     try:
@@ -80,6 +93,13 @@ def main(argv: list[str] | None = None) -> int:
             print(f"Feature cache: {features_path}")
         else:
             features_path = config.output_dir / FEATURES_FILENAME
+        if args.stage in {"e1b-features", "e1b"}:
+            composition_features_path = write_composition_feature_cache(
+                manifest_path, dataset_root=config.dataset_root
+            )
+            print(f"E1b feature cache: {composition_features_path}")
+        else:
+            composition_features_path = config.output_dir / COMPOSITION_FEATURES_FILENAME
         if args.stage in {"classify", "all"}:
             timestamp = datetime.now().strftime("%Y-%m-%d_%H%M%S_%f")
             output_dir = (
@@ -141,6 +161,68 @@ def main(argv: list[str] | None = None) -> int:
             )
             print(f"E1a results: {results_path}")
             print(f"E1a predictions: {predictions_path}")
+        if args.stage in {"e1b-classify", "e1b"}:
+            timestamp = datetime.now().strftime("%Y-%m-%d_%H%M%S_%f")
+            output_dir = (
+                Path(args.run_dir)
+                if args.run_dir
+                else Path(args.experiments_dir) / f"{config.experiment_name}_e1b_{timestamp}"
+            )
+            if output_dir.exists() and any(output_dir.iterdir()):
+                raise ValueError(
+                    f"run directory is not empty: {output_dir}; choose a new --run-dir"
+                )
+            output_dir.mkdir(parents=True, exist_ok=True)
+            progress_path = output_dir / "progress.jsonl"
+
+            def report_e1b_progress(event: dict[str, object]) -> None:
+                with progress_path.open("a", encoding="utf-8") as stream:
+                    stream.write(json.dumps(event, ensure_ascii=False) + "\n")
+                if args.quiet_progress:
+                    return
+                if event["event"] == "permutation_completed":
+                    position = int(event["position"])
+                    total = int(event["total_permutations"])
+                    if position == 1 or position == total or position % 10 == 0:
+                        print(
+                            f"[perm {position:>3}/{total}] {event['variant']} | "
+                            f"{event['model']} | null BA={event['null_balanced_accuracy']:.3f}",
+                            flush=True,
+                        )
+                    return
+                if event["event"] not in {"fit_started", "fit_completed"}:
+                    return
+                prefix = f"[{event['position']:>4}/{event['total_fits']}]"
+                identity = (
+                    f"{event['analysis']} | {event['variant']} | {event['model']} | "
+                    f"repeat {event['repeat'] + 1}/{len(config.split_seeds)} | "
+                    f"fold {event['fold'] + 1}/{config.outer_splits}"
+                )
+                if event["event"] == "fit_started":
+                    print(f"{prefix} START {identity}", flush=True)
+                else:
+                    print(
+                        f"{prefix} DONE  {identity} | "
+                        f"{event['elapsed_seconds']:.1f}s | "
+                        f"BA={event['balanced_accuracy']:.3f}",
+                        flush=True,
+                    )
+
+            results_path, predictions_path, _ = write_e1b_results(
+                composition_features_path,
+                splits_path,
+                output_dir,
+                bootstrap_samples=args.bootstrap_samples,
+                permutations=args.permutations,
+                retraining_permutations=args.retraining_permutations,
+                include_group_sensitivity=not args.skip_group_sensitivity,
+                permutation_importance_repeats=args.importance_repeats,
+                progress_callback=report_e1b_progress,
+                config_path=args.config,
+                manifest_path=manifest_path,
+            )
+            print(f"E1b results: {results_path}")
+            print(f"E1b predictions: {predictions_path}")
     except Exception as exc:  # CLI boundary: preserve a useful non-zero result
         print(f"E1 stage failed: {exc}", file=sys.stderr)
         return 1
