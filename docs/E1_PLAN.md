@@ -191,6 +191,24 @@ Analiza wrażliwości: powtórzyć ocenę, losując po jednej próbce z każdej 
 Zmniejsza to przewagę kompozytorów reprezentowanych wieloma częściami tych samych
 sonat i pokazuje, czy wynik nie jest skutkiem liczby movements.
 
+Analiza wrażliwości obejmuje ponowne dopasowanie modeli i wewnętrzny dobór
+hiperparametrów na zredukowanym zbiorze, a nie tylko przeliczenie metryk na
+podzbiorze gotowych predykcji. W każdym powtórzeniu wybór próbki jest
+deterministyczny względem zapisanego seeda i wspólny dla wszystkich modeli oraz
+wariantów cech.
+
+Rozróżniamy dwie kontrole permutacyjne:
+
+- szybka permutacja etykiet względem gotowych predykcji OOF jest wyłącznie
+  diagnostyką zgodności i nie stanowi testu całej procedury uczenia;
+- raportowany test z ponownym uczeniem permutuje etykiety całych `group_id`, po
+  każdej permutacji ponownie dopasowuje wcześniej ustalone pipeline'y i używa
+  pierwszego, wcześniej zapisanego powtórzenia splitów. Hiperparametry kontroli
+  są stałe (`C=1` dla logistic oraz `max_features="sqrt"`,
+  `min_samples_leaf=1` dla RF), dzięki czemu nie są dobierane na podstawie
+  obserwowanych lub permutowanych etykiet. Finalny przebieg E1.2 powinien używać
+  co najmniej 99 takich permutacji.
+
 Nie tworzymy jednego stałego test setu przy tak małej liczbie grup. Zewnętrzne
 foldy pełnią rolę niewidzianych testów, a ich predykcje są agregowane dopiero po
 zakończeniu wszystkich foldów.
@@ -283,7 +301,10 @@ Zakres:
 
 **Go/no-go:** pipeline jest deterministyczny dla tego samego seeda, cechy
 walidacyjne nie uczestniczą w skalowaniu ani wyborze hiperparametrów, dummy daje
-wynik zgodny z oczekiwanym poziomem odniesienia.
+wynik zgodny z oczekiwanym poziomem odniesienia. Walidator OOF potwierdza brak
+brakujących, nadmiarowych i zduplikowanych predykcji oraz zgodność foldu,
+kompozytora, `group_id` i SHA. Finalny katalog zawiera zakończony
+`run_manifest.json`, snapshoty wejść i analizę jednej próbki na grupę.
 
 ### E1.3 — E1b, cechy kompozycyjne
 
@@ -331,9 +352,12 @@ przenosić ani zmieniać nazw jego plików.
 - **E1.0 — wykonany:** adapter ASAP, manifest, raport jakości i bramka audytu.
 - **E1.1 — wykonany:** deterministyczne 5×5 `StratifiedGroupKFold`, wewnętrzne
   3-fold grouped CV, kontrole przecieku `sample_id`/`group_id`/SHA i liczności.
-- **E1.2 — zaimplementowany:** wersjonowany cache `legacy_full` oraz
-  `legacy_score_only`, nested CV dla dummy/logistic/RF, predykcje OOF, metryki,
-  klastrowy bootstrap i permutacja etykiet na poziomie grup.
+- **E1.2 — implementacja domknięta:** wersjonowany cache `legacy_full` oraz
+  `legacy_score_only`, nested CV dla dummy/logistic/RF, walidowane predykcje OOF,
+  metryki, stratyfikowany bootstrap klastrowy, ponownie trenowana analiza jednej
+  próbki na grupę, test permutacyjny z ponownym uczeniem i pełna proweniencja
+  przebiegu. Do zamrożenia wyniku potrzebny jest finalny przebieg z co najmniej
+  99 permutacjami retreningowymi.
 - **E1.3 — następny odseparowany krok:** nowy kontrakt i testy cech
   kompozycyjnych mierzonych w beatach/metrum.
 

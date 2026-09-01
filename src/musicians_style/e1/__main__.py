@@ -24,8 +24,28 @@ def main(argv: list[str] | None = None) -> int:
         help="audit=E1.0, splits=E1.1, features/classify=E1.2",
     )
     parser.add_argument("--experiments-dir", default="experiments")
+    parser.add_argument(
+        "--run-dir",
+        help="Explicit new output directory for classify; must be absent or empty.",
+    )
     parser.add_argument("--bootstrap-samples", type=int, default=2000)
-    parser.add_argument("--permutations", type=int, default=999)
+    parser.add_argument(
+        "--permutations",
+        type=int,
+        default=999,
+        help="Fast group-level association permutations on fixed OOF predictions.",
+    )
+    parser.add_argument(
+        "--retraining-permutations",
+        type=int,
+        default=0,
+        help="Costly group-label permutations with model refitting (recommend 99 for final E1.2).",
+    )
+    parser.add_argument(
+        "--skip-group-sensitivity",
+        action="store_true",
+        help="Skip the additional retraining with one sample selected per group.",
+    )
     parser.add_argument(
         "--quiet-progress",
         action="store_true",
@@ -61,19 +81,39 @@ def main(argv: list[str] | None = None) -> int:
         else:
             features_path = config.output_dir / FEATURES_FILENAME
         if args.stage in {"classify", "all"}:
-            timestamp = datetime.now().strftime("%Y-%m-%d_%H%M%S")
-            output_dir = Path(args.experiments_dir) / f"{config.experiment_name}_{timestamp}"
+            timestamp = datetime.now().strftime("%Y-%m-%d_%H%M%S_%f")
+            output_dir = (
+                Path(args.run_dir)
+                if args.run_dir
+                else Path(args.experiments_dir) / f"{config.experiment_name}_{timestamp}"
+            )
+            if output_dir.exists() and any(output_dir.iterdir()):
+                raise ValueError(
+                    f"run directory is not empty: {output_dir}; choose a new --run-dir"
+                )
             output_dir.mkdir(parents=True, exist_ok=True)
             progress_path = output_dir / "progress.jsonl"
 
             def report_progress(event: dict[str, object]) -> None:
                 with progress_path.open("a", encoding="utf-8") as stream:
                     stream.write(json.dumps(event, ensure_ascii=False) + "\n")
-                if args.quiet_progress or event["event"] not in {"fit_started", "fit_completed"}:
+                if args.quiet_progress:
+                    return
+                if event["event"] == "permutation_completed":
+                    position = int(event["position"])
+                    total = int(event["total_permutations"])
+                    if position == 1 or position == total or position % 10 == 0:
+                        print(
+                            f"[perm {position:>3}/{total}] {event['variant']} | "
+                            f"{event['model']} | null BA={event['null_balanced_accuracy']:.3f}",
+                            flush=True,
+                        )
+                    return
+                if event["event"] not in {"fit_started", "fit_completed"}:
                     return
                 prefix = f"[{event['position']:>3}/{event['total_fits']}]"
                 identity = (
-                    f"{event['variant']} | {event['model']} | "
+                    f"{event['analysis']} | {event['variant']} | {event['model']} | "
                     f"repeat {event['repeat'] + 1}/{len(config.split_seeds)} | "
                     f"fold {event['fold'] + 1}/{config.outer_splits}"
                 )
@@ -93,7 +133,11 @@ def main(argv: list[str] | None = None) -> int:
                 output_dir,
                 bootstrap_samples=args.bootstrap_samples,
                 permutations=args.permutations,
+                retraining_permutations=args.retraining_permutations,
+                include_group_sensitivity=not args.skip_group_sensitivity,
                 progress_callback=report_progress,
+                config_path=args.config,
+                manifest_path=manifest_path,
             )
             print(f"E1a results: {results_path}")
             print(f"E1a predictions: {predictions_path}")

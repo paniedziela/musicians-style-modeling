@@ -74,6 +74,10 @@ python -m musicians_style.e1 --config configs/e1_asap.yaml --stage splits
 python -m musicians_style.e1 --config configs/e1_asap.yaml --stage features
 python -m musicians_style.e1 --config configs/e1_asap.yaml --stage classify
 
+# finalny E1.2: dodatkowo kosztowny test permutacyjny z ponownym uczeniem
+python -m musicians_style.e1 --config configs/e1_asap.yaml --stage classify `
+  --retraining-permutations 99
+
 # albo E1.0-E1.2 w jednym przebiegu
 python -m musicians_style.e1 --config configs/e1_asap.yaml --stage all
 
@@ -97,6 +101,15 @@ midi-style evaluate `
   --style <manifest_artysty.json> `
   --metric mahalanobis
 ```
+
+Klasyfikacja domyślnie wykonuje także analizę wrażliwości z jedną losowaną
+deterministycznie próbką na grupę, przez co obejmuje 300 zadań model/fold.
+`--retraining-permutations 99` dodaje osobną, kosztowną kontrolę istotności;
+zwykłe `--permutations` dotyczy tylko szybkiej diagnostyki zgodności gotowych
+predykcji OOF z etykietami. Postęp jest widoczny w terminalu i w
+`progress.jsonl`. Każdy katalog przebiegu zawiera `run_manifest.json`, kopię
+konfiguracji oraz snapshoty manifestu danych, splitów i cache'u cech. Nowy,
+jawny katalog można podać przez `--run-dir`; katalog musi być pusty.
 
 Do czasu wykonania etapów P0–P2 z [planu naprawczego](docs/PLAN_NAPRAWCZY.md)
 nie warto uruchamiać długiego treningu GAN.
