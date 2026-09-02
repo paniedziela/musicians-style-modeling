@@ -13,8 +13,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="python -m musicians_style.e3")
     parser.add_argument("--config", required=True)
     parser.add_argument("--stage", required=True, choices=("prepare", "pilot", "run", "report", "all"))
-    parser.add_argument("--run-dir")
-    parser.add_argument("--workers", type=int)
+    parser.add_argument("--run-dir", help="Override output.run_dir for this invocation.")
+    parser.add_argument("--workers", type=int, default=None, help="Override the YAML worker-process count for this invocation.")
     parser.add_argument("--e2-run-dir")
     return parser
 

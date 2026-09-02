@@ -57,7 +57,7 @@ def _resolve(value: Any) -> Path:
 
 
 def _hash_value(value: Any) -> str:
-    encoded = json.dumps(value, sort_keys=True, separators=(",", ":")).encode()
+    encoded = json.dumps(value, sort_keys=True, separators=(",", ":"), default=str).encode()
     return hashlib.sha256(encoded).hexdigest()
 
 
@@ -131,9 +131,24 @@ class E3Experiment:
         self.config = config
         self.run_dir = Path(run_dir).resolve() if run_dir else config.run_dir
         self.workers = config.workers if workers is None else int(workers)
+        self.runtime_overrides = {
+            "workers": workers is not None,
+            "run_dir": run_dir is not None,
+        }
         if self.workers < 1:
             raise ValueError("workers must be positive")
-        self.config_hash = _hash_value(config.raw)
+        hash_payload = config.raw or {
+            key: value for key, value in asdict(config).items() if key != "raw"
+        }
+        self.config_hash = _hash_value(hash_payload)
+
+    def _effective_runtime(self) -> dict[str, Any]:
+        return {
+            "workers": self.workers,
+            "workers_source": "cli" if self.runtime_overrides["workers"] else "config",
+            "run_dir": str(self.run_dir),
+            "run_dir_source": "cli" if self.runtime_overrides["run_dir"] else "config",
+        }
 
     @property
     def task_manifest_path(self) -> Path:
@@ -222,7 +237,12 @@ class E3Experiment:
         run_manifest = self.run_dir / "run_manifest.json"
         if not run_manifest.exists():
             _atomic_json(run_manifest, {"schema_version": SCHEMA_VERSION, "status": "prepared", "created_at_utc": _now(),
-                                        "config_hash": self.config_hash, "task_counts": payload["counts"]})
+                                        "config_hash": self.config_hash, "task_counts": payload["counts"],
+                                        "effective_runtime": self._effective_runtime()})
+        else:
+            run_payload = json.loads(run_manifest.read_text(encoding="utf-8"))
+            run_payload["effective_runtime"] = self._effective_runtime()
+            _atomic_json(run_manifest, run_payload)
         return self.task_manifest_path
 
     def ensure_prepared(self) -> None:
@@ -255,7 +275,7 @@ class E3Experiment:
         results = [json.loads((self.run_dir / "tasks" / task["task_id"] / "result.json").read_text(encoding="utf-8")) for task in tasks if task not in pending]
         started = time.perf_counter()
         progress_path = self.run_dir / "progress.jsonl"
-        _append_jsonl(progress_path, {"event": "stage_started", "phase": phase, "pending": len(pending), "resumed": len(results), "total": len(tasks)})
+        _append_jsonl(progress_path, {"event": "stage_started", "phase": phase, "pending": len(pending), "resumed": len(results), "total": len(tasks), **self._effective_runtime()})
         if pending and self.workers == 1:
             worker = _Worker(self._worker_payload())
             for task in pending:
@@ -286,12 +306,14 @@ class E3Experiment:
             run_manifest = json.loads(run_manifest_path.read_text(encoding="utf-8"))
             seconds = sum(float(row["elapsed_seconds"]) for row in results) / len(results)
             run_manifest.update({"status": "pilot_completed", "pilot_completed_at_utc": _now(),
-                                 "estimated_full_seconds_single_worker": seconds * 300})
+                                 "estimated_full_seconds_single_worker": seconds * 300,
+                                 "effective_runtime": self._effective_runtime()})
             _atomic_json(run_manifest_path, run_manifest)
         else:
             run_manifest_path = self.run_dir / "run_manifest.json"
             run_manifest = json.loads(run_manifest_path.read_text(encoding="utf-8"))
-            run_manifest.update({"status": "completed", "full_completed_at_utc": _now(), "full_results_sha256": _sha256(output)})
+            run_manifest.update({"status": "completed", "full_completed_at_utc": _now(), "full_results_sha256": _sha256(output),
+                                 "effective_runtime": self._effective_runtime()})
             _atomic_json(run_manifest_path, run_manifest)
         return output
 

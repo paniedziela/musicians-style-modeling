@@ -5,7 +5,7 @@ schema_version: "e2.0.0"
 experiment: "E2"
 repeat: 0
 main_seed: 1729
-workers: 1
+workers: 1  # wartość domyślna; --workers N w CLI ma pierwszeństwo
 
 inputs:
   manifest: "datasets/derived/e1_asap/manifest.json"

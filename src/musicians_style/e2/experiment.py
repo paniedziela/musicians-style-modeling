@@ -466,6 +466,10 @@ class E2Experiment:
         self.config = config
         self.run_dir = Path(run_dir).resolve() if run_dir is not None else config.output_dir
         self.workers = int(config.workers if workers is None else workers)
+        self.runtime_overrides = {
+            "workers": workers is not None,
+            "run_dir": run_dir is not None,
+        }
         if self.workers < 1:
             raise ValueError("workers must be >= 1")
         # YAML is the source of truth for the production configuration.  Unit
@@ -1189,6 +1193,12 @@ class E2Experiment:
         run_manifest["status"] = "pilot_running" if phase == "pilot" else "full_running"
         run_manifest["started_at_utc"] = _utc_now()
         run_manifest["workers"] = self.workers
+        run_manifest["effective_runtime"] = {
+            "workers": self.workers,
+            "workers_source": "cli" if self.runtime_overrides["workers"] else "config",
+            "run_dir": str(self.run_dir),
+            "run_dir_source": "cli" if self.runtime_overrides["run_dir"] else "config",
+        }
         _atomic_json(self.run_manifest_path, run_manifest)
         pending, completed = self._completed_tasks(all_tasks)
         tasks_dir = self.run_dir / "tasks"
@@ -1202,7 +1212,14 @@ class E2Experiment:
             with progress_path.open("a", encoding="utf-8") as stream:
                 stream.write(json.dumps({"timestamp_utc": _utc_now(), **event}, ensure_ascii=False, default=_json_default) + "\n")
 
-        record_progress({"event": "stage_started", "phase": phase, "total": len(all_tasks), "pending": len(pending), "completed": len(completed)})
+        record_progress({
+            "event": "stage_started",
+            "phase": phase,
+            "total": len(all_tasks),
+            "pending": len(pending),
+            "completed": len(completed),
+            **run_manifest["effective_runtime"],
+        })
         if pending:
             payload = self._worker_payload()
             if self.workers == 1:

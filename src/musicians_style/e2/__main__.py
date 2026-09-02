@@ -29,7 +29,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--workers",
         type=int,
         default=None,
-        help="Number of worker processes (default: configuration, normally 1).",
+        help="Override the YAML worker-process count for this invocation.",
     )
     return parser
 

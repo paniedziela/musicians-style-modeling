@@ -63,6 +63,15 @@ def _e2_config(tmp_path: Path) -> E2Config:
     )
 
 
+def test_cli_runtime_values_override_e2_yaml_values(tmp_path: Path) -> None:
+    config = _e2_config(tmp_path)
+    override_dir = tmp_path / "override"
+    experiment = E2Experiment(config, workers=4, run_dir=override_dir)
+    assert experiment.workers == 4
+    assert experiment.run_dir == override_dir.resolve()
+    assert experiment.runtime_overrides == {"workers": True, "run_dir": True}
+
+
 def test_content_metrics_identity_and_time_scaling() -> None:
     source = _repr_()
     identity = _content_metrics(source, source, source, 1 / 16)
