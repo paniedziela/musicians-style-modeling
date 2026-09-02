@@ -1,5 +1,6 @@
-schema_version: "e4.0.0"
+schema_version: "e4.3.0"
 experiment: "E4"
+seed: 1729
 repeat: 0
 outer_fold: 0
 inner_fold: 0
@@ -9,3 +10,14 @@ inputs:
   dataset_root: "datasets/asap-dataset-1.2"
 output:
   run_dir: "experiments/e4_asap"
+model:
+  conv_dim: 32
+  residual_blocks: 3
+training:
+  batch_size: 16
+  max_epochs: 30
+  device: "auto"
+smoke:
+  epochs: 2
+  per_composer: 4
+  files: 6
