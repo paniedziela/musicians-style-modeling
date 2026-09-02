@@ -372,27 +372,32 @@ przenosić ani zmieniać nazw jego plików.
 - **E1.0 — wykonany:** adapter ASAP, manifest, raport jakości i bramka audytu.
 - **E1.1 — wykonany:** deterministyczne 5×5 `StratifiedGroupKFold`, wewnętrzne
   3-fold grouped CV, kontrole przecieku `sample_id`/`group_id`/SHA i liczności.
-- **E1.2 — implementacja domknięta:** wersjonowany cache `legacy_full` oraz
+- **E1.2 — wykonany:** wersjonowany cache `legacy_full` oraz
   `legacy_score_only`, nested CV dla dummy/logistic/RF, walidowane predykcje OOF,
   metryki, stratyfikowany bootstrap klastrowy, ponownie trenowana analiza jednej
   próbki na grupę, test permutacyjny z ponownym uczeniem i pełna proweniencja
-  przebiegu. Do zamrożenia wyniku potrzebny jest finalny przebieg z co najmniej
-  99 permutacjami retreningowymi.
-- **E1.3 — implementacja domknięta:** wersjonowany kontrakt 93 cech
+  przebiegu. Finalny przebieg z 99 permutacjami retreningowymi jest zapisany w
+  `experiments/`.
+- **E1.3 — wykonany:** wersjonowany kontrakt 93 cech
   kompozycyjnych mierzonych w beatach/metrum, testy syntetyczne, wariant pełny,
   wyniki pojedynczych grup i ablacje leave-one-group-out. Klasyfikacja korzysta
   z tego samego nested grouped CV co E1.2, liczy permutation importance na
   zewnętrznych foldach oraz zapisuje analizę błędów według form wyprowadzonych z
-  tytułów ASAP. Do zamrożenia wyniku potrzebny jest finalny przebieg E1b z co
-  najmniej 99 permutacjami retreningowymi.
+  tytułów ASAP. Finalny przebieg E1b z 99 permutacjami retreningowymi jest
+  zapisany w `experiments/`.
 - **E1-open — implementacja i pierwszy przebieg ukończone:** rozszerzony audyt
   zaakceptował 214/214 plików, rozłączne zbiory kompozytorów kalibracyjnych i
   testowych są zamrożone, a raport obejmuje AUROC/AUPRC, FPR przy zadanym TPR,
   recall unknown, pokrycie, jakość zaakceptowanych znanych próbek i trzy kontrole
   leave-one-composer-out.
-- **E1.4 — implementacja domknięta, oczekuje na finalny E1b:** generator wymaga
+- **E1.4 — wykonany:** generator wymaga
   ukończonego `run_manifest.json`, sprawdza kryterium sukcesu, zapisuje CSV-y,
   cztery wykresy, proweniencję, ograniczenie closed-set i opcjonalną sekcję
-  E1-open. Nieukończony test permutacyjny daje status „niekompletne”.
+  E1-open. Raport końcowy znajduje się w `docs/results/E1.md`: balanced accuracy
+  E1b wynosi `0,864`, testy E1/GA przechodzą `105 passed`, a decyzja brzmi GO
+  dla przejścia do E2.
+
+Kolejnym krokiem jest [plan eksperymentu E2](E2_PLAN.md), czyli bezprzeciekowy
+baseline transferu obecnym algorytmem genetycznym.
 
 Nie ma potrzeby pobierania teraz MAESTRO, GiantMIDI-Piano ani innego zbioru.

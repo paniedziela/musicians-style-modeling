@@ -77,6 +77,7 @@ from typing import Mapping
 import numpy as np
 
 from ..config import GAConfig
+from ..evaluation.distance import prepare_mahalanobis
 from ..features.extractor import FeatureExtractor
 from ..features.types import AggregatedFeatures
 from ..logging import get_logger
@@ -194,6 +195,7 @@ class GeneticAlgorithm:
         seed: int,
         *,
         log_path: Path | str | None = None,
+        prepared_inverse_covariance: object | None = None,
     ) -> tuple[Genome, History]:
         """Uruchamia pełny przebieg ewolucji i zwraca najlepszy genotyp z historią.
 
@@ -210,6 +212,11 @@ class GeneticAlgorithm:
             log_path: opcjonalna ścieżka pliku ``ga.jsonl``; gdy podana,
                 statystyki każdego pokolenia zapisywane są jako linie JSON
                 (Wymaganie 4.6). Gdy ``None``, nie powstają żadne pliki.
+            prepared_inverse_covariance: opcjonalna, wcześniej obliczona
+                pseudoodwrotność kowariancji profilu celu. Pozwala współdzielić
+                cache między wieloma przebiegami bez zmiany wyników; gdy
+                ``None`` i metryką jest Mahalanobis, macierz jest liczona raz
+                na przebieg.
 
         Returns:
             Krotka ``(best_genome, history)``: najlepszy znaleziony genotyp w
@@ -231,6 +238,14 @@ class GeneticAlgorithm:
         rng = np.random.default_rng(seed)
         extractor = self._extractor if self._extractor is not None else FeatureExtractor()
         metric = config.fitness_metric
+        # The target profile is fixed throughout one run.  Preparing the
+        # pseudoinverse once preserves the historical fitness exactly while
+        # avoiding an expensive SVD for every genome evaluation.
+        if metric == "mahalanobis" and prepared_inverse_covariance is None:
+            prepared_inverse_covariance = prepare_mahalanobis(
+                style_aggregated.covariance,
+                dimension=style_aggregated.mean.as_array().size,
+            )
 
         self._log.info(
             "start Algorytmu_Genetycznego",
@@ -246,7 +261,12 @@ class GeneticAlgorithm:
         # --- pokolenie 0: inicjalizacja i ewaluacja ---
         population = self._init_population(config.population_size, rng)
         fitnesses = self._evaluate_all(
-            population, x_input, style_aggregated, metric, extractor
+            population,
+            x_input,
+            style_aggregated,
+            metric,
+            extractor,
+            prepared_inverse_covariance,
         )
 
         best_list: list[float] = []
@@ -273,7 +293,7 @@ class GeneticAlgorithm:
             for generation in range(1, config.generations + 1):
                 population, fitnesses = self._next_generation(
                     population, fitnesses, x_input, style_aggregated,
-                    metric, extractor, config, rng,
+                    metric, extractor, config, rng, prepared_inverse_covariance,
                 )
                 best, mean, worst, best_genome = self._stats(population, fitnesses)
                 self._record(
@@ -362,10 +382,18 @@ class GeneticAlgorithm:
         target: AggregatedFeatures,
         metric: str,
         extractor: FeatureExtractor,
+        prepared_inverse_covariance: object | None = None,
     ) -> list[float]:
         """Oblicza wartość *Funkcji_Dopasowania* dla każdego osobnika populacji."""
         return [
-            fitness(genome, x_input, target, metric, extractor=extractor)  # type: ignore[arg-type]
+            fitness(
+                genome,
+                x_input,
+                target,
+                metric,  # type: ignore[arg-type]
+                extractor=extractor,
+                prepared_inverse_covariance=prepared_inverse_covariance,
+            )
             for genome in population
         ]
 
@@ -382,6 +410,7 @@ class GeneticAlgorithm:
         extractor: FeatureExtractor,
         config: GAConfig,
         rng: np.random.Generator,
+        prepared_inverse_covariance: object | None = None,
     ) -> tuple[list[Genome], list[float]]:
         """Tworzy kolejne pokolenie (Wymaganie 4.4, 4.7).
 
@@ -426,7 +455,12 @@ class GeneticAlgorithm:
                 offspring.append(child2)
 
         offspring_fitnesses = self._evaluate_all(
-            offspring, x_input, target, metric, extractor
+            offspring,
+            x_input,
+            target,
+            metric,
+            extractor,
+            prepared_inverse_covariance,
         )
 
         new_population = elites + offspring

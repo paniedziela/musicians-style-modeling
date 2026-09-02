@@ -1,0 +1,54 @@
+# E2: baseline transferu stylu obecnym, czterogenowym GA.
+# Wszystkie ścieżki są rozwiązywane względem katalogu repozytorium (bieżącego
+# katalogu uruchomienia). Nie zmieniać parametrów GA po obejrzeniu pilota.
+schema_version: "e2.0.0"
+experiment: "E2"
+repeat: 0
+main_seed: 1729
+workers: 1
+
+inputs:
+  manifest: "datasets/derived/e1_asap/manifest.json"
+  splits: "datasets/derived/e1_asap/splits.json"
+  legacy_features: "datasets/derived/e1_asap/legacy_features.json"
+  composition_features: "datasets/derived/e1_asap/composition_features.json"
+  dataset_root: "datasets/asap-dataset-1.2"
+  expected_dataset_fingerprints:
+    metadata.csv: "b327d92e498e281b381161ee387dacfd4b1c360c9c240d9107171f78e571b2a5"
+    README.md: "4c0cf082cbed77fa4e1e471db0c5e4352aca8c3a1a6b025f8225c12228a638af"
+    LICENSE.md: "af662157a4f2e47b5fefde500141853e1f7d160ba0dda95546229b5e60a93f6d"
+
+output:
+  run_dir: "experiments/e2_asap"
+  summary: "docs/results/E2.md"
+
+ga:
+  population_size: 100
+  generations: 200
+  tournament_size: 3
+  crossover: "uniform"  # obecny operator uniform_crossover = BLX-α (α=0.5)
+  mutation_sigma:
+    transpose_semitones: 1.5
+    rhythm_density_factor: 0.1
+    note_duration_factor: 0.1
+    velocity_offset: 5.0
+  elitism_k: 2
+  fitness_metric: "mahalanobis"
+  stagnation_generations: 30
+
+pilot:
+  fold: 0
+  seeds: [1729, 2718, 3141]
+
+evaluator:
+  model: "random_forest"
+  feature_variant: "composition_full"
+  n_estimators: 300
+  class_weight: "balanced"
+  max_features: 0.5
+  min_samples_leaf: 2
+  random_state: 1729
+  bootstrap_samples: 2000
+  sign_permutations: 999
+  alpha: 0.05
+  onset_tolerance_beats: 0.0625

@@ -18,8 +18,14 @@ i transferu stylu pomiędzy plikami MIDI.
   i minimalny program eksperymentów.
 - [Plan eksperymentu E1](docs/E1_PLAN.md) — przygotowanie lokalnego ASAP,
   podział bez przecieku oraz etapy E1.0–E1.4.
+- [Plan eksperymentu E2](docs/E2_PLAN.md) — baseline transferu obecnym
+  algorytmem genetycznym, pilot, pełna macierz i niezależna ewaluacja E1b.
 - [Porządkowanie literatury](docs/LITERATURA.md) — kryteria redukcji 173 pozycji,
   literatura rdzeniowa i proponowana struktura przeglądu.
+
+E1 jest zamknięty decyzją GO (`balanced accuracy E1b = 0,864`; testy E1/GA:
+`105 passed`). E2 służy jako zamrożony baseline obecnego GA przed przebudową
+metody w E3.
 
 ## Rekomendowany zakres pracy
 
@@ -43,9 +49,9 @@ jedynym artefaktem. Warunkowany GAN może pozostać eksperymentem dodatkowym.
 | Cechy | 42 wartości: tempo, histogramy, gęstość, długości, pauzy | działa; zestaw jest zbyt mały do tezy o stylu |
 | `conditional` | pojedynczy generator wielodomenowy inspirowany StarGAN | prototyp; wymaga segmentacji, walidacji i stabilizacji |
 | `per_artist` | pojedynczy generator i dyskryminator | **nie jest pełnym CycleGAN-em** |
-| GA | czteroparametrowa transformacja globalna | działa technicznie; wymaga nowej funkcji celu i bogatszych operatorów |
+| GA | czteroparametrowa transformacja globalna | działa technicznie; E2 mierzy ją jako baseline, E3 ma ją przebudować |
 | Ewaluacja | odległości cech, testy statystyczne, odsłuch | infrastruktura jest, brak kompletnego eksperymentu |
-| CLI | `acquire`, `train`, `infer`, `evaluate` | GA i tryb łączony są dostępne tylko przez API Pythona |
+| CLI | `acquire`, `train`, `infer`, `evaluate`, `e1`, `e2` | tryb łączony nadal jest dostępny przez API Pythona |
 
 ## Instalacja
 
@@ -102,6 +108,12 @@ python -m musicians_style.e1 --config configs/e1_asap.yaml --stage open-classify
 python -m musicians_style.e1 --config configs/e1_asap.yaml --stage report `
   --e1b-run-dir experiments/<ukończony_e1b> `
   --open-run-dir experiments/<ukończony_e1_open>
+
+# E2: przygotowanie, pilot, pełna macierz i raport baseline'u GA
+python -m musicians_style.e2 --config configs/e2_asap.yaml --stage prepare
+python -m musicians_style.e2 --config configs/e2_asap.yaml --stage pilot
+python -m musicians_style.e2 --config configs/e2_asap.yaml --stage run --workers 1
+python -m musicians_style.e2 --config configs/e2_asap.yaml --stage report
 
 # albo E1.0-E1.2 w jednym przebiegu
 python -m musicians_style.e1 --config configs/e1_asap.yaml --stage all

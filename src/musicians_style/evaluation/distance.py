@@ -51,6 +51,8 @@ import numpy as np
 __all__ = [
     "euclidean",
     "mahalanobis",
+    "prepare_mahalanobis",
+    "mahalanobis_from_inverse",
 ]
 
 
@@ -168,38 +170,65 @@ def mahalanobis(
     b = _as_feature_array(f2_or_aggregated, "f2_or_aggregated")
     _validate_same_length(a, b)
 
+    inv_cov = prepare_mahalanobis(covariance, dimension=a.shape[0])
+    return mahalanobis_from_inverse(a, b, inv_cov)
+
+
+def prepare_mahalanobis(
+    covariance: object, *, dimension: int | None = None
+) -> np.ndarray:
+    """Prepare the pseudoinverse used by :func:`mahalanobis`.
+
+    Callers evaluating many candidates against one style profile can compute
+    this once and pass the result to :func:`mahalanobis_from_inverse`.  The
+    validation and symmetrisation match the historical implementation.
+    """
     cov = np.asarray(covariance, dtype=np.float64)
     if cov.ndim != 2 or cov.shape[0] != cov.shape[1]:
         raise ValueError(
             "Macierz kowariancji musi być kwadratowa (2-D), otrzymano kształt "
             f"{cov.shape}."
         )
-    if cov.shape[0] != a.shape[0]:
+    if dimension is not None and cov.shape[0] != dimension:
         raise ValueError(
             "Bok macierzy kowariancji musi być równy długości wektorów cech "
-            f"({a.shape[0]}), otrzymano {cov.shape[0]}."
+            f"({dimension}), otrzymano {cov.shape[0]}."
         )
     if not np.all(np.isfinite(cov)):
         raise ValueError(
             "Macierz kowariancji zawiera wartości nieskończone (NaN/inf); "
             "wymagane są wyłącznie wartości skończone."
         )
+    inverse = np.asarray(np.linalg.pinv(0.5 * (cov + cov.T)), dtype=np.float64)
+    if not np.all(np.isfinite(inverse)):
+        raise ValueError("Pseudoodwrotność macierzy kowariancji nie jest skończona.")
+    inverse.flags.writeable = False
+    return inverse
 
+
+def mahalanobis_from_inverse(
+    f1: object, f2_or_aggregated: object, inverse_covariance: object
+) -> float:
+    """Compute Mahalanobis distance from a precomputed pseudoinverse."""
+    a = _as_feature_array(f1, "f1")
+    b = _as_feature_array(f2_or_aggregated, "f2_or_aggregated")
+    _validate_same_length(a, b)
+    inverse = np.asarray(inverse_covariance, dtype=np.float64)
+    if inverse.ndim != 2 or inverse.shape != (a.shape[0], a.shape[0]):
+        raise ValueError(
+            "Macierz pseudoodwrotna musi mieć kształt zgodny z wektorami cech; "
+            f"otrzymano {inverse.shape} dla wymiaru {a.shape[0]}."
+        )
+    if not np.all(np.isfinite(inverse)):
+        raise ValueError(
+            "Macierz pseudoodwrotna zawiera wartości nieskończone (NaN/inf); "
+            "wymagane są wyłącznie wartości skończone."
+        )
     delta = a - b
-    # Symetryzacja stabilizuje pseudoodwrotność i zachowuje dodatnią
-    # półokreśloność dla poprawnej kowariancji.
-    cov_sym = 0.5 * (cov + cov.T)
-    inv_cov = np.linalg.pinv(cov_sym)
-
-    quadratic = float(delta @ inv_cov @ delta)
-
+    quadratic = float(delta @ inverse @ delta)
     if not np.isfinite(quadratic):
         raise ValueError(
             "Forma kwadratowa odległości Mahalanobisa nie jest skończona; "
-            "sprawdź wartości wejściowe i macierz kowariancji."
+            "sprawdź wartości wejściowe i macierz pseudoodwrotną."
         )
-
-    # Dla dodatnio półokreślonej kowariancji forma kwadratowa jest nieujemna;
-    # drobne wartości ujemne wynikające z błędu numerycznego przycinamy do zera.
-    quadratic = max(quadratic, 0.0)
-    return float(np.sqrt(quadratic))
+    return float(np.sqrt(max(quadratic, 0.0)))

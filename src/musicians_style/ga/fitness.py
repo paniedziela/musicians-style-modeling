@@ -50,7 +50,7 @@ from __future__ import annotations
 
 from typing import Literal
 
-from ..evaluation.distance import euclidean, mahalanobis
+from ..evaluation.distance import euclidean, mahalanobis_from_inverse, prepare_mahalanobis
 from ..features.extractor import FeatureExtractor
 from ..features.types import AggregatedFeatures
 from ..midi.types import InternalRepr
@@ -75,6 +75,7 @@ def fitness(
     metric: FitnessMetric = "euclidean",
     *,
     extractor: FeatureExtractor | None = None,
+    prepared_inverse_covariance: object | None = None,
 ) -> float:
     """Oblicza dopasowanie osobnika *Algorytmu_Genetycznego* (Wymaganie 4.3).
 
@@ -98,6 +99,9 @@ def fitness(
         extractor: opcjonalny *Ekstraktor_Cech*. Gdy ``None``, używana jest
             współdzielona instancja domyślna. Przekazanie jednej instancji w
             pętli ewolucji ogranicza narzut tworzenia obiektów.
+        prepared_inverse_covariance: opcjonalna pseudoodwrotność kowariancji
+            przygotowana raz dla stałego profilu celu; dotyczy metryki
+            Mahalanobisa i zachowuje zgodność z wywołaniem bez cache'u.
 
     Returns:
         Wartość *Funkcji_Dopasowania* jako ``float`` - ujemna odległość
@@ -121,7 +125,12 @@ def fitness(
     if metric == "euclidean":
         distance = euclidean(candidate, target)
     elif metric == "mahalanobis":
-        distance = mahalanobis(candidate, target, target_aggregated.covariance)
+        inverse = (
+            prepare_mahalanobis(target_aggregated.covariance, dimension=candidate.size)
+            if prepared_inverse_covariance is None
+            else prepared_inverse_covariance
+        )
+        distance = mahalanobis_from_inverse(candidate, target, inverse)
     else:
         raise ValueError(
             "Nieobsługiwana metryka odległości "

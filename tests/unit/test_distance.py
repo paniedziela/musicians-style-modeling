@@ -17,7 +17,12 @@ import math
 import numpy as np
 import pytest
 
-from musicians_style.evaluation.distance import euclidean, mahalanobis
+from musicians_style.evaluation.distance import (
+    euclidean,
+    mahalanobis,
+    mahalanobis_from_inverse,
+    prepare_mahalanobis,
+)
 from musicians_style.features.types import (
     FEATURE_VECTOR_LENGTH,
     INTERVAL_HISTOGRAM_BINS,
@@ -174,6 +179,15 @@ def test_mahalanobis_known_full_covariance() -> None:
     b = np.array([0.0, 0.0], dtype=np.float64)
     cov = np.array([[2.0, 0.0], [0.0, 8.0]], dtype=np.float64)
     assert mahalanobis(a, b, cov) == pytest.approx(math.sqrt(0.625))
+
+
+def test_prepared_mahalanobis_matches_historical_distance() -> None:
+    a = np.array([1.0, 2.0, -1.0])
+    b = np.array([0.0, 1.0, 3.0])
+    cov = np.array([[2.0, 0.2, 0.0], [0.2, 1.0, 0.1], [0.0, 0.1, 3.0]])
+    expected = mahalanobis(a, b, cov)
+    inverse = prepare_mahalanobis(cov, dimension=3)
+    assert mahalanobis_from_inverse(a, b, inverse) == pytest.approx(expected)
 
 
 def test_mahalanobis_non_negative_and_finite() -> None:

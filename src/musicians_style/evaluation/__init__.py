@@ -9,7 +9,7 @@ Pakiet udostępnia:
   (:class:`EvaluationReport`, :class:`StatTestResult`, :class:`DescriptiveStats`).
 """
 
-from .distance import euclidean, mahalanobis
+from .distance import euclidean, mahalanobis, mahalanobis_from_inverse, prepare_mahalanobis
 from .objective import (
     DescriptiveStats,
     EvaluationReport,
@@ -42,6 +42,8 @@ from .subjective import (
 __all__ = [
     "euclidean",
     "mahalanobis",
+    "prepare_mahalanobis",
+    "mahalanobis_from_inverse",
     "ObjectiveEvaluator",
     "EvaluationReport",
     "StatTestResult",
