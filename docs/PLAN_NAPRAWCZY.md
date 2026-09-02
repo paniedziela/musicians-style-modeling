@@ -363,3 +363,6 @@ sygnał odpowiadający formalnemu celowi pracy.
 
 Szczegółowy, etapowy protokół dla pobranego ASAP znajduje się w
 [planie eksperymentu E1](E1_PLAN.md).
+
+Plan małego eksperymentu neuronowego wraz z bramką go/no-go i uzasadnieniem
+literaturowym znajduje się w [planie eksperymentu E4](E4_PLAN.md).

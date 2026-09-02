@@ -89,24 +89,27 @@ głównym przeglądzie.
 11. *MIDI-VAE: Modeling Dynamics and Instrumentation of Music with Applications
     to Style Transfer* — pozostawić, jeśli dynamika/instrumentacja wejdą do
     zakresu; inaczej warstwa B.
+12. [Cífka, Şimşekli i Richard, Supervised Symbolic Music Style Translation Using Synthetic Data](https://archives.ismir.net/ismir2019/paper/000071.pdf)
+    — uzasadnia rozdzielenie oceny dopasowania stylu i zachowania treści oraz
+    pokazuje ograniczenia klasyfikatora jako jedynej miary transferu.
 
 ### A4. Optymalizacja ewolucyjna
 
-12. `evolutionary-music-composition-system-with-statistically-modeled-criteria_1798.pdf`
+13. `evolutionary-music-composition-system-with-statistically-modeled-criteria_1798.pdf`
     — obowiązkowe źródło wskazane w formalnej literaturze pracy.
-13. *Musical Style Modification as an Optimization Problem* — priorytet do
+14. *Musical Style Modification as an Optimization Problem* — priorytet do
     pozyskania pełnego tekstu i porównania funkcji celu.
-14. *Classification and Generation of Composer-Specific Music Using Global
+15. *Classification and Generation of Composer-Specific Music Using Global
     Feature Models and Variable Neighborhood Search* — bezpośrednio łączy
     cechy globalne, klasyfikację i optymalizację.
 
 ### A5. Dane i tokenizacja
 
-15. [MAESTRO](https://magenta.withgoogle.com/datasets/maestro) — fortepianowe
+16. [MAESTRO](https://magenta.withgoogle.com/datasets/maestro) — fortepianowe
     MIDI z kompozytorem i oficjalnymi splitami.
-16. [GiantMIDI-Piano](https://doi.org/10.5334/tismir.80) — duży korpus piano;
+17. [GiantMIDI-Piano](https://doi.org/10.5334/tismir.80) — duży korpus piano;
     omówić automatyczną transkrypcję jako źródło błędu.
-17. [MidiTok](https://miditok.readthedocs.io/en/latest/) — tylko jeśli zostanie
+18. [MidiTok](https://miditok.readthedocs.io/en/latest/) — tylko jeśli zostanie
     wybrany wariant sekwencyjny/Transformer.
 
 ## Warstwa B — tło, maksymalnie kilka cytowań na temat
