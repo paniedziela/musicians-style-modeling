@@ -20,6 +20,8 @@ i transferu stylu pomiędzy plikami MIDI.
   podział bez przecieku oraz etapy E1.0–E1.4.
 - [Plan eksperymentu E2](docs/E2_PLAN.md) — baseline transferu obecnym
   algorytmem genetycznym, pilot, pełna macierz i niezależna ewaluacja E1b.
+- [Plan implementacji E3](docs/E3_PLAN.md) — odchudzony GA z lokalnymi
+  operacjami i twardą ochroną melodii, metrum oraz długości.
 - [Porządkowanie literatury](docs/LITERATURA.md) — kryteria redukcji 173 pozycji,
   literatura rdzeniowa i proponowana struktura przeglądu.
 

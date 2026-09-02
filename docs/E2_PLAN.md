@@ -34,6 +34,16 @@ liczby nut. Sześć kierunków uruchamiamy dla seedów `1729`, `2718`, `3141`, c
 18 zadań. Pilot sprawdza poprawność, determinizm, możliwość wznowienia i koszt
 obliczeń; nie służy do strojenia parametrów.
 
+Zakończony pilot (`experiments/e2_asap`) trwał 2036 s czasu ściennego przy dwóch
+workerach. To nie jest koszt 18 zwykłych zadań pełnej macierzy: każde zadanie
+pilota jest celowo wykonywane drugi raz z tym samym seedem i porównywane bit po
+bicie. Pełny przebieg nie wykonuje tego powtórzenia. Na podstawie liczby nut,
+liczby pokoleń do stagnacji i zmierzonego kosztu pilota szacunek dla 300 zadań
+wynosi około 6,9 godziny pracy jednego procesu, czyli orientacyjnie 3,5–5 godzin
+czasu ściennego dla `--workers 2`. Jest to szacunek, nie gwarancja: długie utwory,
+obciążenie komputera i późniejsza stagnacja mogą go zwiększyć. Przebieg można
+bezpiecznie przerwać i wznowić, ponieważ ukończone zadania są pomijane.
+
 ### Niezależna ewaluacja
 
 W każdym foldzie uczymy od zera Random Forest E1b tylko na train:
