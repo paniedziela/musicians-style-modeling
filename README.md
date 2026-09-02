@@ -117,6 +117,13 @@ python -m musicians_style.e2 --config configs/e2_asap.yaml --stage pilot
 python -m musicians_style.e2 --config configs/e2_asap.yaml --stage run --workers 1
 python -m musicians_style.e2 --config configs/e2_asap.yaml --stage report
 
+# E3: lokalny transfer z ochroną melodii/metrum i profilem wyłącznie z train
+python -m musicians_style.e3 --config configs/e3_asap.yaml --stage prepare
+python -m musicians_style.e3 --config configs/e3_asap.yaml --stage pilot --workers 2
+python -m musicians_style.e3 --config configs/e3_asap.yaml --stage run --workers 2
+python -m musicians_style.e3 --config configs/e3_asap.yaml --stage report `
+  --e2-run-dir experiments/e2_asap
+
 # albo E1.0-E1.2 w jednym przebiegu
 python -m musicians_style.e1 --config configs/e1_asap.yaml --stage all
 

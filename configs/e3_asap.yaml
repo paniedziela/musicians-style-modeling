@@ -1,0 +1,33 @@
+schema_version: "e3.0.0"
+experiment: "E3"
+repeat: 0
+main_seed: 1729
+workers: 1
+
+inputs:
+  manifest: "datasets/derived/e1_asap/manifest.json"
+  splits: "datasets/derived/e1_asap/splits.json"
+  composition_features: "datasets/derived/e1_asap/composition_features.json"
+  dataset_root: "datasets/asap-dataset-1.2"
+
+output:
+  run_dir: "experiments/e3_asap"
+  summary: "docs/results/E3.md"
+
+ga:
+  population_size: 32
+  generations: 60
+  elitism_k: 2
+  tournament_size: 3
+  stagnation_generations: 12
+  mutation_sigma: [1.0, 0.12, 0.12, 0.12, 0.12]
+
+pilot:
+  fold: 0
+  seed: 1729
+
+evaluator:
+  n_estimators: 300
+  max_features: 0.5
+  min_samples_leaf: 2
+  random_state: 1729
