@@ -1,0 +1,11 @@
+schema_version: "e4.0.0"
+experiment: "E4"
+repeat: 0
+outer_fold: 0
+inner_fold: 0
+inputs:
+  manifest: "datasets/derived/e1_asap/manifest.json"
+  splits: "datasets/derived/e1_asap/splits.json"
+  dataset_root: "datasets/asap-dataset-1.2"
+output:
+  run_dir: "experiments/e4_asap"
