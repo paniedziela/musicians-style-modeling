@@ -9,20 +9,10 @@ import numpy as np
 from ..midi.parser import MidiParser
 from ..midi.printer import MidiPrettyPrinter
 from ..midi.types import InternalRepr
+from ..evaluation.content import max_polyphony, semantic_midi_equal
 from .profile import GROUPS, TargetProfile, style_vector
 from .structure import analyse_structure, piece_end_tick
 from .types import CandidateEvaluation, ConstraintReport, E3Genome, PieceStructure
-
-
-def max_polyphony(repr_: InternalRepr) -> int:
-    boundaries = []
-    for note in repr_.notes:
-        boundaries.extend(((note.tick, 1), (note.tick + note.duration_ticks, -1)))
-    active = maximum = 0
-    for _, change in sorted(boundaries, key=lambda pair: (pair[0], pair[1])):
-        active += change
-        maximum = max(maximum, active)
-    return maximum
 
 
 def validate_constraints(
@@ -41,7 +31,7 @@ def validate_constraints(
     if roundtrip:
         try:
             reparsed = MidiParser().parse_bytes(MidiPrettyPrinter().to_bytes(output))
-            valid_roundtrip = reparsed == output
+            valid_roundtrip = semantic_midi_equal(reparsed, output)
         except Exception:  # validation boundary: any serializer/parser failure is infeasible
             valid_roundtrip = False
         if not valid_roundtrip:
@@ -74,7 +64,10 @@ def validate_constraints(
     if not 0.9 <= ratio <= 1.1:
         violations.append("note_count")
     polyphony = max_polyphony(output)
-    if polyphony > profile.max_polyphony:
+    # Identity is the guaranteed feasible fallback.  A source that already
+    # exceeds the target corpus maximum must not fail before it is modified;
+    # transformations may not make that pre-existing excess worse.
+    if polyphony > max(profile.max_polyphony, max_polyphony(source)):
         violations.append("polyphony")
     zero_before = sum(note.duration_ticks <= 0 for note in source.notes)
     zero_after = sum(note.duration_ticks <= 0 for note in output.notes)

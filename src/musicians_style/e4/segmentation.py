@@ -145,9 +145,9 @@ def _cell_end(segment: Segment, local_step: int) -> int:
     return _boundaries(bar)[local_step % STEPS_PER_BAR + 1]
 
 
-def quantization_errors(segment_map: SegmentMap) -> list[tuple[str, float, float]]:
-    """Return ``(meter, onset_error, end_error)`` for in-range source notes."""
-    errors: list[tuple[str, float, float]] = []
+def quantization_errors(segment_map: SegmentMap) -> list[tuple[str, float, float, float, float]]:
+    """Return errors and actual local step widths for in-range source notes."""
+    errors: list[tuple[str, float, float, float, float]] = []
     bar_starts = tuple(bar.start_tick for bar in segment_map.bars)
     for note in segment_map.source.notes:
         if not segment_map.pitch_low <= note.pitch < segment_map.pitch_high or note.duration_ticks <= 0:
@@ -161,7 +161,13 @@ def quantization_errors(segment_map: SegmentMap) -> list[tuple[str, float, float
         onset = _boundaries(start)[_step_for_tick(start, note.tick)]
         end_bounds = _boundaries(end)
         decoded_end = next((value for value in end_bounds if value >= note.tick + note.duration_ticks), end_bounds[-1])
-        errors.append((f"{start.numerator}/{start.denominator}", float(onset - note.tick), float(decoded_end - (note.tick + note.duration_ticks))))
+        errors.append((
+            f"{start.numerator}/{start.denominator}",
+            float(onset - note.tick),
+            float(decoded_end - (note.tick + note.duration_ticks)),
+            start.length_ticks / STEPS_PER_BAR,
+            end.length_ticks / STEPS_PER_BAR,
+        ))
     return errors
 
 

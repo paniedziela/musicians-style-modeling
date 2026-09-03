@@ -13,6 +13,21 @@ StarGAN-em ani CycleGAN-em. Zachowujemy ideę jednego generatora `G(x, c)` i
 dyskryminatora z głowami real/fake oraz domeny, ale reprezentacja, cel
 adwersaryjny i zastosowanie do MIDI są własną adaptacją.
 
+## Stan implementacji (2026-09-03)
+
+Etapy E4.0–E4.5 są zaimplementowane w schemacie `e4.5.0`: audyt danych,
+segmentacja i scalenie, trening, kalibracja progów, wybór checkpointu na
+validation, pełna ewaluacja sześciu kierunków, bramka go/no-go oraz osobno
+blokowany outer test. Testy jednostkowe obejmują również stan sustainu między
+oknami i blokadę testu przed validation GO.
+
+Historyczny katalog `experiments/e4_asap` zawiera niekompatybilny przebieg E4.3,
+w którym `best.pt` wybierano po stracie treningowej. Nie wolno interpretować go
+jako wyniku E4.4/E4.5. Nowy protokół zapisuje artefakty do
+`experiments/e4_asap_v2`; wynik badawczy powstaje dopiero po wykonaniu treningu
+i walidacji. Etap `test` wolno uruchomić tylko wtedy, gdy `validation.json`
+zawiera `passed: true`.
+
 ## Rola E4 w pracy
 
 | Etap | Rola |
@@ -268,7 +283,7 @@ loaderze treningowym.
 
 ### E4.3 — harness, checkpoint i inferencja
 
-Nowy harness ma etapy `audit`, `prepare`, `smoke`, `train`, `evaluate`, `report`,
+Nowy harness ma etapy `audit`, `prepare`, `smoke`, `train`, `evaluate`, `test`, `report`,
 atomowe artefakty, `status.json`, wznowienie z `last.pt` i pełną geometrię
 preprocessingu w checkpointcie. Nie rozszerzamy starego globalnego CLI, dopóki
 E4 nie przejdzie go/no-go.
@@ -338,8 +353,9 @@ src/musicians_style/e4/
   model.py               # małe G/D; bez modyfikowania historycznego E0
   training.py            # straty, checkpoint best/last, resume
   experiment.py          # audit/prepare/smoke/train/evaluate/report
+  evaluation.py          # E1b, metryki treści i zamrożona bramka
 tests/unit/e4/
-experiments/e4_asap/     # ignorowane przez Git
+experiments/e4_asap_v2/  # ignorowane przez Git
 docs/results/E4.md
 ```
 
@@ -364,6 +380,8 @@ python -m musicians_style.e4 --config configs/e4_asap.yaml --stage prepare
 python -m musicians_style.e4 --config configs/e4_asap.yaml --stage smoke
 python -m musicians_style.e4 --config configs/e4_asap.yaml --stage train
 python -m musicians_style.e4 --config configs/e4_asap.yaml --stage evaluate
+# Tylko po validation GO:
+python -m musicians_style.e4 --config configs/e4_asap.yaml --stage test
 python -m musicians_style.e4 --config configs/e4_asap.yaml --stage report
 ```
 

@@ -10,6 +10,7 @@ Pakiet udostępnia:
 """
 
 from .distance import euclidean, mahalanobis, mahalanobis_from_inverse, prepare_mahalanobis
+from .content import content_metrics, semantic_midi_equal
 from .objective import (
     DescriptiveStats,
     EvaluationReport,
@@ -44,6 +45,8 @@ __all__ = [
     "mahalanobis",
     "prepare_mahalanobis",
     "mahalanobis_from_inverse",
+    "content_metrics",
+    "semantic_midi_equal",
     "ObjectiveEvaluator",
     "EvaluationReport",
     "StatTestResult",

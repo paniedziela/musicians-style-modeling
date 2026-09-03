@@ -1,4 +1,4 @@
-schema_version: "e4.3.0"
+schema_version: "e4.5.0"
 experiment: "E4"
 seed: 1729
 repeat: 0
@@ -8,16 +8,37 @@ inputs:
   manifest: "datasets/derived/e1_asap/manifest.json"
   splits: "datasets/derived/e1_asap/splits.json"
   dataset_root: "datasets/asap-dataset-1.2"
+  composition_features: "datasets/derived/e1_asap/composition_features.json"
 output:
-  run_dir: "experiments/e4_asap"
+  # Separate from the historical E4.3 run: its loss-selected checkpoint is
+  # intentionally incompatible with the validation-selected E4.5 protocol.
+  run_dir: "experiments/e4_asap_v2"
+  summary: "docs/results/E4.md"
 model:
   conv_dim: 32
   residual_blocks: 3
 training:
   batch_size: 16
   max_epochs: 30
+  patience: 5
+  learning_rate: 0.0002
+  beta1: 0.5
+  beta2: 0.999
+  lambda_cls: 1.0
+  lambda_cyc: 10.0
+  lambda_id: 10.0
   device: "auto"
 smoke:
   epochs: 2
   per_composer: 4
   files: 6
+decoding:
+  threshold_grid: [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+gates:
+  melody_similarity_min: 0.95
+  fallback_rate_max: 0.01
+  onset_tolerance_beats: 0.0625
+audit:
+  min_bar_quarter_notes: 0.5
+  max_bar_quarter_notes: 12.0
+  allow_terminal_partial_bar: true

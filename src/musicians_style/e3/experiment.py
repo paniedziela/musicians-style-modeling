@@ -318,64 +318,15 @@ class E3Experiment:
         return output
 
     def write_report(self, e2_run_dir: Path | str | None = None) -> Path:
+        """Close E3 from frozen outputs; no GA task is executed here."""
+        from .reporting import build_closure_report
+
         results_path = self.run_dir / "results.json"
         if not results_path.exists():
             raise ValueError("full E3 results are required before report")
         rows = json.loads(results_path.read_text(encoding="utf-8"))["results"]
-        gains = np.asarray([row["delta_p_target"] for row in rows], dtype=float)
-        feasible = sum(bool(row["constraints"]["feasible"]) for row in rows)
-        identity_groups = _group_means(rows, lambda row: float(row["delta_p_target"]))
-        identity_ci = _bootstrap_group_ci(identity_groups, seed=self.config.main_seed)
-        identity_p = _sign_permutation_p(identity_groups, seed=self.config.main_seed + 1)
-        comparison = "\n## Porównanie sparowane z E2\n\nBrak kompletnego, dopasowanego wyniku E2.\n"
-        direction_lines: list[str] = []
-        if e2_run_dir:
-            path = Path(e2_run_dir) / "results.json"
-            if path.exists():
-                e2_rows = json.loads(path.read_text(encoding="utf-8"))["results"]
-                e2 = {(row["fold"], row["source_id"], row["target_composer"]): row for row in e2_rows}
-                paired_rows = []
-                for row in rows:
-                    key = (row["fold"], row["source_id"], row["target_composer"])
-                    if key in e2:
-                        paired_rows.append({**row, "paired_difference": float(row["delta_p_target"]) - float(e2[key]["delta_p_target"])})
-                if paired_rows:
-                    paired_groups = _group_means(paired_rows, lambda row: float(row["paired_difference"]))
-                    paired_ci = _bootstrap_group_ci(paired_groups, seed=self.config.main_seed + 2)
-                    paired_p = _sign_permutation_p(paired_groups, seed=self.config.main_seed + 3)
-                    by_direction: dict[str, list[dict[str, Any]]] = {}
-                    for row in paired_rows:
-                        by_direction.setdefault(f"{row['source_composer']}→{row['target_composer']}", []).append(row)
-                    raw_p = {
-                        direction: _sign_permutation_p(
-                            _group_means(values, lambda row: float(row["paired_difference"])),
-                            seed=self.config.main_seed + 10 + index,
-                        )
-                        for index, (direction, values) in enumerate(sorted(by_direction.items()))
-                    }
-                    adjusted = _holm(raw_p)
-                    direction_lines = [
-                        f"| {direction} | {np.mean([row['paired_difference'] for row in values]):.4f} | {raw_p[direction]:.4f} | {adjusted[direction]:.4f} |"
-                        for direction, values in sorted(by_direction.items())
-                    ]
-                    comparison = (
-                        "\n## Porównanie sparowane z E2\n\n"
-                        f"- Liczba par: `{len(paired_rows)}`.\n"
-                        f"- Średnia E3−E2: `{np.mean([row['paired_difference'] for row in paired_rows]):.4f}`.\n"
-                        f"- 95% CI klastrowane po group_id: `[{paired_ci[0]:.4f}, {paired_ci[1]:.4f}]`.\n"
-                        f"- Dwustronny test znaków/permutacyjny na średnich grupowych: `p={paired_p:.4f}`.\n\n"
-                        "| Kierunek | średnia E3−E2 | p surowe | p Holma |\n|---|---:|---:|---:|\n"
-                        + "\n".join(direction_lines) + "\n"
-                    )
-        text = ("# E3 — transfer kontrolowany ograniczeniami\n\n"
-                f"- Zadania zakończone: `{len(rows)}`.\n- Średnie Δp_target: `{gains.mean():.4f}`.\n"
-                f"- 95% CI Δp_target klastrowane po group_id: `[{identity_ci[0]:.4f}, {identity_ci[1]:.4f}]`.\n"
-                f"- Test znaków/permutacyjny Δp_target: `p={identity_p:.4f}`.\n"
-                f"- Wyniki feasible: `{feasible}/{len(rows)}`.\n- Wyniki nie gorsze od identity wg celu E3: `"
-                f"{sum(row['style_gain'] >= 0 for row in rows)}/{len(rows)}`.\n"
-                f"- Round-trip poprawny: `{sum(row['constraints']['roundtrip_valid'] for row in rows)}/{len(rows)}`.\n"
-                f"- Błąd długości ≤5%: `{sum(row['constraints']['length_error'] <= .05 for row in rows)}/{len(rows)}`.\n"
-                + comparison)
+        text, analysis = build_closure_report(self.config, self.run_dir, rows, e2_run_dir)
+        _atomic_json(self.run_dir / "closure_analysis.json", analysis)
         _atomic_text(self.config.summary_path, text)
         return self.config.summary_path
 
