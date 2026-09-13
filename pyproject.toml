@@ -45,6 +45,10 @@ dev = [
 
 [project.scripts]
 midi-style = "musicians_style.cli:main"
+midi-listen = "musicians_style.listener.server:main"
+
+[tool.setuptools.package-data]
+"musicians_style.listener" = ["static/*.html", "static/*.css", "static/*.js"]
 
 [tool.setuptools]
 package-dir = { "" = "src" }

@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="pl">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>MIDI · Odsłuch eksperymentów</title><link rel="stylesheet" href="/style.css"></head>
+<body>
+<header><div class="brand">♪ <span>MIDI<span class="brand-light"> / odsłuch</span></span></div><span class="local">● lokalnie</span></header>
+<main>
+  <aside>
+    <div class="library-heading"><h1>Biblioteka</h1><button id="refresh" title="Odśwież bibliotekę" aria-label="Odśwież bibliotekę">↻</button></div>
+    <p class="muted">Wyniki eksperymentów i własne pliki.</p>
+    <label class="upload" id="drop">＋ Dodaj MIDI <small>lub przeciągnij pliki tutaj</small><input id="upload" type="file" accept=".mid,.midi" multiple></label>
+    <label class="sr" for="search">Szukaj utworu lub ścieżki</label><input id="search" type="search" placeholder="Szukaj utworu, kompozytora…">
+    <label class="sr" for="experiment">Eksperyment</label><select id="experiment"><option value="">Wszystkie eksperymenty</option></select>
+    <label class="sr" for="target">Styl docelowy</label><select id="target"><option value="">Wszystkie style docelowe</option></select>
+    <div class="list-heading"><span id="count">Ładowanie biblioteki…</span><span>Załaduj do</span></div>
+    <div id="files" class="files"></div>
+    <p id="root" class="root"></p>
+  </aside>
+  <section class="workspace">
+    <div class="intro"><span class="eyebrow">ODSŁUCH EKSPERYMENTÓW</span><h2>Posłuchaj różnicy.</h2><p class="muted">Wybierz dwa pliki i przełączaj je w tym samym miejscu utworu.</p></div>
+    <div id="status" role="status" aria-live="polite">Wybierz MIDI z biblioteki albo dodaj własny plik.</div>
+    <div class="slots">
+      <article class="slot active" id="slotA"><button class="slot-toggle" data-slot="A" aria-pressed="true">A <span>Pierwszy plik</span></button><h3 id="nameA">Wybierz utwór</h3><p id="metaA" class="muted">Kliknij A przy pliku w bibliotece.</p><div class="slot-links"><button id="originalA" hidden>Załaduj oryginał do B</button><a id="downloadA" hidden download>Pobierz MIDI ↓</a></div></article>
+      <article class="slot" id="slotB"><button class="slot-toggle" data-slot="B" aria-pressed="false">B <span>Plik do porównania</span></button><h3 id="nameB">Wybierz utwór</h3><p id="metaB" class="muted">Kliknij B przy pliku w bibliotece.</p><div class="slot-links"><button id="originalB" hidden>Załaduj oryginał do A</button><a id="downloadB" hidden download>Pobierz MIDI ↓</a></div></article>
+    </div>
+    <div class="player">
+      <div class="transport"><button id="restart" title="Od początku" aria-label="Od początku">↤</button><button id="play" class="primary" disabled>▶ Odtwórz</button><label class="loop"><input id="loop" type="checkbox"> Zapętlaj</label><label class="speed">Tempo <select id="speed"><option value="0.5">0,5×</option><option value="0.75">0,75×</option><option value="1" selected>1×</option><option value="1.25">1,25×</option><option value="1.5">1,5×</option><option value="2">2×</option></select></label></div>
+      <div class="timeline"><span id="position">0:00</span><input id="seek" type="range" min="0" max="1" step="0.01" value="0" aria-label="Pozycja odtwarzania"><span id="duration">0:00</span></div>
+      <div class="volume"><label for="volume">Głośność</label><input id="volume" type="range" min="0" max="1" step="0.01" value="0.75"><a id="wav" hidden download="odsłuch.wav">Pobierz WAV ↓</a></div>
+    </div>
+    <div class="roll-heading"><h3>Podgląd nut</h3><span id="note-count" class="muted">—</span></div>
+    <div class="roll"><canvas id="roll" aria-label="Podgląd nut MIDI z kursorem odtwarzania"></canvas><p id="roll-empty">Tutaj zobaczysz nuty wybranego pliku.</p></div>
+    <footer>Spacja — odtwórz / pauza <span> A / B — przełącz plik </span> ← / → — przewiń 5 s <small>Synteza FluidSynth · pliki pozostają na tym komputerze</small></footer>
+  </section>
+</main><script src="/app.js"></script>
+</body></html>

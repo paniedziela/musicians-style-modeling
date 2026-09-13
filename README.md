@@ -71,6 +71,39 @@ nie są obecnie jednym spójnym źródłem prawdy.
 
 ## Podstawowe polecenia
 
+### Webowy odsłuch MIDI
+
+Z katalogu repozytorium uruchom lokalną aplikację (bez dodatkowego frameworka):
+
+```powershell
+$env:PYTHONPATH = "src"
+.venv\Scripts\python.exe -m musicians_style.listener
+```
+
+Otwórz **http://127.0.0.1:8765**. Biblioteka wyszukuje MIDI rekurencyjnie;
+wybierz eksperyment, wyszukaj utwór i załaduj pliki do **A** oraz **B**.
+Przełączanie zachowuje pozycję odsłuchu. Dla wyników E2/E3 przy dostępnych
+manifestach i zbiorze danych można jednym kliknięciem załadować oryginał.
+Własne MIDI dodasz przez wybór pliku lub przeciągnięcie do okna.
+Aplikacja oferuje pauzę, przewijanie, tempo, zapętlanie, podgląd nut i pobieranie
+MIDI/WAV. Skróty: spacja, A/B, strzałki w lewo/prawo.
+
+Audio powstaje przez FluidSynth przy pierwszym załadowaniu pliku. Wymagane są
+`pretty_midi`, `pyFluidSynth`, systemowa biblioteka FluidSynth oraz SoundFont
+(domyślnie `soundfonts/FluidR3_GM.sf2`). Zmiana tempa zmienia również wysokość
+dźwięku. Limit pojedynczego MIDI: 10 MB, 15 minut, 200 000 nut.
+Cache audio i wgrane pliki trafiają do `experiments/.midi-listener/`;
+można go usunąć po zatrzymaniu aplikacji. Wgrane pliki są dostępne do końca
+sesji serwera. Aplikacja działa lokalnie, bez CDN i zewnętrznych usług.
+
+```powershell
+# Inny katalog, SoundFont i port
+.venv\Scripts\python.exe -m musicians_style.listener `
+  --root experiments/e4_asap_v2 --soundfont soundfonts/FluidR3_GM.sf2 --port 8766
+```
+
+Po zainstalowaniu aktualnego pakietu dostępne jest też polecenie `midi-listen`.
+
 ```powershell
 # E1.0: manifest ASAP i raport jakości (bez treningu)
 python -m musicians_style.e1 --config configs/e1_asap.yaml --stage audit
