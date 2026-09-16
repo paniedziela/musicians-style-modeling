@@ -5,6 +5,44 @@ let active = "A", files = [], uploads = [], loading = new Set();
 let background = document.createElement("canvas");
 const time = n => `${Math.floor((n || 0) / 60)}:${String(Math.floor((n || 0) % 60)).padStart(2, "0")}`;
 function status(message, error = false) { $("status").textContent = message; $("status").classList.toggle("error", error); }
+function displayPath(file, data) {
+  return data?.path || file?.path || file?.id || "";
+}
+function noteKeys(data) {
+  return (data?.notes || []).map(note => `${note[0]}|${note[1]}|${note[2]}`).sort();
+}
+function noteSimilarity(left, right) {
+  const a = noteKeys(left), b = noteKeys(right);
+  let i = 0, j = 0, intersection = 0;
+  while (i < a.length && j < b.length) {
+    if (a[i] === b[j]) { intersection++; i++; j++; }
+    else if (a[i] < b[j]) i++;
+    else j++;
+  }
+  const union = a.length + b.length - intersection;
+  return union ? intersection / union : 1;
+}
+function updateComparison() {
+  const box = $("comparison"), left = slots.A, right = slots.B;
+  if (!left.data || !right.data) { box.hidden = true; box.textContent = ""; return; }
+  const similarity = noteSimilarity(left.data, right.data);
+  const sameBytes = left.data.sha256 && left.data.sha256 === right.data.sha256;
+  const sameSource = left.file?.source_id && left.file.source_id === right.file?.source_id;
+  const differentTargets = left.file?.target && right.file?.target && left.file.target !== right.file.target;
+  const percentage = (similarity * 100).toLocaleString("pl-PL", { maximumFractionDigits: 2 });
+  box.className = "comparison";
+  if (sameBytes || similarity === 1) {
+    box.classList.add("warning");
+    box.textContent = `${sameBytes ? "Pliki są identyczne bajtowo i nutowo" : "Pliki są identyczne nutowo"}.` +
+      (sameSource && differentTargets ? " Różne style docelowe nie wpłynęły na wynik — model prawdopodobnie ignoruje etykietę celu." : "");
+  } else if (sameSource && differentTargets && similarity >= 0.99) {
+    box.classList.add("warning");
+    box.textContent = `Wyniki dla różnych stylów są niemal identyczne: ${percentage}% wspólnych zdarzeń nutowych. Model może ignorować etykietę celu.`;
+  } else {
+    box.textContent = `Zgodność zdarzeń nutowych A/B: ${percentage}%.`;
+  }
+  box.hidden = false;
+}
 async function request(url, options) {
   const response = await fetch(url, options);
   if (!response.ok) {
@@ -27,6 +65,7 @@ async function refresh() {
     files = data.files;
     $("root").textContent = data.root;
     options("experiment", [...files, ...uploads].map(f => f.experiment), "Wszystkie eksperymenty");
+    options("folder", [...files, ...uploads].map(f => f.folder), "Wszystkie foldery");
     options("target", files.map(f => f.target), "Wszystkie style docelowe");
     renderList();
     if (!data.soundfont) status("Brak SoundFontu. Ustaw --soundfont przy uruchamianiu aplikacji.", true);
@@ -37,6 +76,7 @@ function renderList() {
   const query = $("search").value.trim().toLocaleLowerCase();
   const matches = [...uploads, ...files].filter(f =>
     (!$("experiment").value || f.experiment === $("experiment").value) &&
+    (!$("folder").value || f.folder === $("folder").value) &&
     (!$("target").value || f.target === $("target").value) &&
     `${f.name} ${f.id} ${f.composer} ${f.target}`.toLocaleLowerCase().includes(query));
   $("count").textContent = `${matches.length} plików`;
@@ -47,7 +87,8 @@ function renderList() {
     const info = document.createElement("div"); info.className = "file-info";
     const name = document.createElement("strong"); name.textContent = file.name; name.title = file.id;
     const detail = document.createElement("small"); detail.textContent = `${file.experiment}${file.target ? ` → ${file.target}` : ` · ${file.kind || "MIDI"}`}`;
-    info.append(name, detail); row.append(info);
+    const path = document.createElement("small"); path.className = "file-path"; path.textContent = file.path || file.id; path.title = file.path || file.id;
+    info.append(name, detail, path); row.append(info);
     ["A", "B"].forEach(slot => {
       const button = document.createElement("button"); button.textContent = slot;
       button.title = `Załaduj ${file.name} do ${slot}`;
@@ -76,13 +117,16 @@ async function load(slot, file, description) {
   slots[slot] = { file };
   $("name" + slot).textContent = file.name;
   $("meta" + slot).textContent = "Odczyt MIDI…";
+  $("path" + slot).textContent = displayPath(file);
   $("download" + slot).hidden = true;
   $("original" + slot).hidden = true;
-  status(`Ładowanie pliku ${slot}…`); renderList(); updateControls(); drawBackground();
+  status(`Ładowanie pliku ${slot}…`); renderList(); updateControls(); updateComparison(); drawBackground();
   try {
     const data = description || await (await request(`/api/midi?id=${encodeURIComponent(file.id)}`)).json();
     slots[slot].data = data;
     $("meta" + slot).textContent = `${time(data.duration)} · ${data.notes.length} nut · ${data.tracks.length} ścieżek`;
+    $("path" + slot).textContent = displayPath(file, data);
+    updateComparison();
     $("download" + slot).href = data.download;
     $("download" + slot).download = data.name;
     $("download" + slot).hidden = false;
@@ -111,7 +155,7 @@ async function load(slot, file, description) {
     audio.addEventListener("pause", updateControls);
     status(`Plik ${slot} gotowy do odsłuchu.`);
   } catch (error) { status(error.message, true); $("meta" + slot).textContent = "Nie udało się przygotować odsłuchu."; }
-  finally { loading.delete(slot); renderList(); updateControls(); }
+  finally { loading.delete(slot); renderList(); updateControls(); updateComparison(); }
 }
 async function selectSlot(slot) {
   if (slot === active) return;
@@ -203,17 +247,18 @@ async function addFiles(selected) {
     try {
       status(`Dodawanie ${file.name}…`);
       const data = await (await request(`/api/upload?name=${encodeURIComponent(file.name)}`, { method: "POST", headers: { "Content-Type": "audio/midi" }, body: file })).json();
-      const entry = { id: data.id, name: file.name, experiment: "Własne pliki", target: "", composer: "" };
+      const entry = { id: data.id, name: file.name, experiment: "Własne pliki", folder: "Własne pliki", target: "", composer: "" };
       uploads = [entry, ...uploads.filter(f => f.id !== entry.id)];
       options("experiment", [...files, ...uploads].map(f => f.experiment), "Wszystkie eksperymenty");
-      $("experiment").value = "Własne pliki"; $("target").value = ""; $("search").value = "";
+      options("folder", [...files, ...uploads].map(f => f.folder), "Wszystkie foldery");
+      $("experiment").value = "Własne pliki"; $("folder").value = "Własne pliki"; $("target").value = ""; $("search").value = "";
       await load(!slots.A.data ? "A" : !slots.B.data ? "B" : active, entry, data);
     } catch (error) { status(error.message, true); }
   }
   renderList(); $("upload").value = "";
 }
 $("refresh").onclick = refresh;
-["search", "experiment", "target"].forEach(id => $(id).addEventListener("input", renderList));
+["search", "experiment", "folder", "target"].forEach(id => $(id).addEventListener("input", renderList));
 document.querySelectorAll("[data-slot]").forEach(button => button.onclick = () => selectSlot(button.dataset.slot));
 $("play").onclick = togglePlay;
 $("restart").onclick = () => seek(0);

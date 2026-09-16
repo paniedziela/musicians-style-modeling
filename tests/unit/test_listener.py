@@ -1,4 +1,5 @@
 """MIDI timing, library boundaries, synthesis cache and browser HTTP contract."""
+import hashlib
 import io
 import json
 import threading
@@ -48,6 +49,8 @@ def test_timing_includes_tempo_changes(library):
     assert data["duration"] == pytest.approx(1.5)
     assert data["notes"][0][:3] == [0, 0.5, 60]
     assert data["notes"][1][:3] == [0.5, 1.5, 64]
+    assert data["path"] == "piece.mid"
+    assert data["sha256"] == hashlib.sha256(midi_bytes()).hexdigest()
 
 
 @pytest.mark.parametrize("file_id", ["../outside.mid", "piece.txt", "upload:unknown"])
@@ -75,6 +78,8 @@ def test_catalog_handles_experiment_metadata_and_original(library):
         "dataset_root": ".", "samples": [{"sample_id": "work1", "score_path": "piece.mid"}]}))
     output = next(e for e in library.catalog() if e["target"])
     assert output["experiment"] == "e3_test"
+    assert output["folder"] == "experiments/e3_test/tasks/task1"
+    assert output["path"] == "experiments/e3_test/tasks/task1/output.mid"
     assert output["original"] == "piece.mid"
 
 
@@ -110,6 +115,9 @@ def test_browser_routes_upload_and_byte_ranges(server, monkeypatch):
     monkeypatch.setattr(pretty_midi.PrettyMIDI, "fluidsynth", lambda self, **kw: np.zeros(100))
     with urllib.request.urlopen(server + "/") as response:
         assert b'lang="pl"' in response.read()
+    with urllib.request.urlopen(server + "/details.css") as response:
+        assert response.headers["Content-Type"].startswith("text/css")
+        assert b".comparison.warning" in response.read()
     with urllib.request.urlopen(server + "/api/library") as response:
         assert len(json.load(response)["files"]) == 1
     upload = urllib.request.Request(server + "/api/upload?name=custom.mid", data=midi_bytes(), headers={"Content-Type": "audio/midi"})

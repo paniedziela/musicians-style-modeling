@@ -1,0 +1,34 @@
+.file .file-path {
+  color: #70879a;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: Consolas, "SFMono-Regular", monospace;
+  font-size: 9px;
+}
+
+.slot > .file-path {
+  color: #71889a;
+  font-family: Consolas, "SFMono-Regular", monospace;
+  font-size: 10px;
+  line-height: 1.4;
+  margin-top: 7px;
+  overflow-wrap: anywhere;
+}
+
+.comparison {
+  margin-top: 12px;
+  border: 1px solid #355061;
+  background: #15232e;
+  color: #b7cad8;
+  padding: 11px 14px;
+  border-radius: 8px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.comparison.warning {
+  border-color: #806b3d;
+  background: #302817;
+  color: #f1d995;
+}

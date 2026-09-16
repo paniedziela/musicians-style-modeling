@@ -65,6 +65,7 @@ class Library:
                 if not path.resolve().is_relative_to(self.root):
                     continue
                 relative = path.relative_to(self.root)
+                folder_name = relative.parent.as_posix()
                 result = read_json(folder / "result.json") if name.lower() == "output.mid" else {}
                 title = result.get("source_id") or path.stem
                 target = result.get("target_composer", "")
@@ -73,6 +74,7 @@ class Library:
                     title, target = title.rsplit("_to_", 1)
                 experiment = relative.parts[1] if relative.parts[0] == "experiments" and len(relative.parts) > 2 else relative.parts[0] if len(relative.parts) > 1 else "Pliki MIDI"
                 entries.append({"id": relative.as_posix(), "name": title,
+                                "path": relative.as_posix(), "folder": folder_name,
                                 "experiment": experiment, "target": target,
                                 "composer": result.get("source_composer", ""),
                                 "kind": "Wynik" if target or result else "MIDI",
@@ -124,6 +126,8 @@ class Library:
         notes = sorted([[round(n.start, 4), round(n.end, 4), n.pitch, n.velocity, index]
                         for index, inst in enumerate(midi.instruments) for n in inst.notes])
         return {"id": file_id, "name": self.uploads[file_id][1] if file_id in self.uploads else path.name,
+                "path": self.uploads[file_id][1] if file_id in self.uploads else file_id,
+                "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
                 "duration": midi.get_end_time(), "notes": notes,
                 "tracks": [{"name": i.name or ("Perkusja" if i.is_drum else f"Instrument {i.program + 1}"),
                             "notes": len(i.notes)} for i in midi.instruments],
@@ -221,9 +225,10 @@ def make_handler(library: Library):
                                   Content_Range=f"bytes {start}-{end}/{len(data)}", Accept_Ranges="bytes")
                     else:
                         self.send(data, content_type, Accept_Ranges="bytes")
-                elif url.path in {"/", "/app.js", "/style.css"}:
+                elif url.path in {"/", "/app.js", "/style.css", "/details.css"}:
                     name = "index.html" if url.path == "/" else url.path[1:]
-                    mime = {"index.html": "text/html", "app.js": "text/javascript", "style.css": "text/css"}[name]
+                    mime = {"index.html": "text/html", "app.js": "text/javascript",
+                            "style.css": "text/css", "details.css": "text/css"}[name]
                     self.send((ASSETS / name).read_bytes(), mime + "; charset=utf-8")
                 else:
                     self.json({"error": "Nie znaleziono strony."}, 404)
