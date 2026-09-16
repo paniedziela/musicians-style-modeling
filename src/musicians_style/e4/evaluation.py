@@ -26,6 +26,38 @@ def binary_f1(target: np.ndarray, prediction: np.ndarray) -> float:
     return 2 * true_positive / denominator if denominator else 1.0
 
 
+def discriminator_classification_metrics(
+    discriminator: torch.nn.Module,
+    dataset: object,
+    device: torch.device,
+    *,
+    batch_size: int = 64,
+) -> dict[str, Any]:
+    """Measure the real-segment domain signal that guides the generator."""
+    loader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=False)  # type: ignore[arg-type]
+    confusion = np.zeros((len(COMPOSERS), len(COMPOSERS)), dtype=np.int64)
+    was_training = discriminator.training
+    discriminator.eval()
+    with torch.no_grad():
+        for raw in loader:
+            x = raw["x"].to(device)
+            truth = raw["source"].cpu().numpy()
+            _, logits = discriminator(x)
+            predicted = logits.argmax(dim=1).cpu().numpy()
+            for expected, actual in zip(truth, predicted):
+                confusion[int(expected), int(actual)] += 1
+    discriminator.train(was_training)
+    totals = confusion.sum(axis=1)
+    recalls = np.divide(
+        np.diag(confusion), totals, out=np.zeros(len(COMPOSERS), dtype=float), where=totals > 0,
+    )
+    return {
+        "balanced_accuracy": float(recalls.mean()),
+        "per_composer_recall": {name: float(recalls[index]) for index, name in enumerate(COMPOSERS)},
+        "confusion_matrix": confusion.tolist(),
+    }
+
+
 def calibrate_thresholds(
     model: torch.nn.Module,
     pieces: Sequence[PieceSegments],
@@ -136,6 +168,7 @@ def summarize_records(
     *,
     melody_min: float,
     fallback_max: float,
+    target_similarity_max: float = .99,
 ) -> dict[str, Any]:
     if not records:
         raise ValueError("cannot summarize an empty E4 evaluation")
@@ -156,6 +189,7 @@ def summarize_records(
     melody_values = [float(row["content"]["melody_trigram_jaccard"]) for row in records]
     length_ok = all(int(row["content"]["length_error_ticks"]) <= int(row["allowed_length_error_ticks"]) for row in records)
     style_groups_ok = sum(value >= 0 for value in group_means.values()) >= 2 and any(value > 0 for value in group_means.values())
+    target_similarities = [float(row.get("cross_target_event_similarity", 0.0)) for row in records]
     criteria = {
         "mean_delta_p_target_positive": float(np.mean([row["delta_p_target"] for row in records])) > 0,
         "at_least_four_of_six_directions_positive": sum(value > 0 for value in direction_means.values()) >= 4,
@@ -177,6 +211,7 @@ def summarize_records(
             <= max(row["content"]["max_polyphony_input"], row["target_max_polyphony"])
             for row in records
         ),
+        "target_outputs_not_collapsed": float(np.mean(target_similarities)) < target_similarity_max,
     }
     return {
         "record_count": len(records),
@@ -186,6 +221,7 @@ def summarize_records(
         "median_melody_trigram_jaccard": float(np.median(melody_values)),
         "mean_onset_f1": float(np.mean([row["content"]["onset_f1"] for row in records])),
         "mean_chroma_cosine": float(np.mean([row["content"]["chroma_cosine"] for row in records])),
+        "mean_cross_target_event_similarity": float(np.mean(target_similarities)),
         "fallback_segments": fallback_segments,
         "nonempty_input_segments": nonempty_segments,
         "fallback_rate": fallback_rate,

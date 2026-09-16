@@ -1,0 +1,50 @@
+schema_version: "e4.6.0"
+experiment: "E4"
+seed: 1729
+repeat: 0
+outer_fold: 0
+inner_fold: 0
+inputs:
+  manifest: "datasets/derived/e1_asap/manifest.json"
+  splits: "datasets/derived/e1_asap/splits.json"
+  dataset_root: "datasets/asap-dataset-1.2"
+  composition_features: "datasets/derived/e1_asap/composition_features.json"
+output:
+  # E4.6 changes the generator, loss and checkpoint selection.  Never reuse
+  # checkpoints from the historical e4_asap_v2 run.
+  run_dir: "experiments/e4_asap_v3"
+  summary: "docs/results/E4_v3.md"
+model:
+  conv_dim: 32
+  residual_blocks: 3
+training:
+  batch_size: 16
+  min_epochs: 10
+  max_epochs: 30
+  patience: 10
+  learning_rate: 0.0002
+  beta1: 0.5
+  beta2: 0.999
+  lambda_cls: 1.0
+  lambda_cyc: 10.0
+  lambda_id: 10.0
+  device: "auto"
+loss:
+  maximum_positive_weight: 12.0
+  onset_channel_weight: 2.0
+  frame_channel_weight: 1.0
+smoke:
+  epochs: 2
+  per_composer: 4
+  files: 6
+decoding:
+  threshold_grid: [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+gates:
+  melody_similarity_min: 0.95
+  fallback_rate_max: 0.01
+  target_event_similarity_max: 0.99
+  onset_tolerance_beats: 0.0625
+audit:
+  min_bar_quarter_notes: 0.5
+  max_bar_quarter_notes: 12.0
+  allow_terminal_partial_bar: true

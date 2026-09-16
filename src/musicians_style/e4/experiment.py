@@ -25,15 +25,19 @@ import torch
 import yaml
 from torch.utils.data import DataLoader, Subset
 
+from ..evaluation.content import content_metrics
 from ..midi.parser import MidiParser
 from ..midi.printer import MidiPrettyPrinter
 from .dataset import COMPOSERS, BalancedComposerSampler, PieceSegments, SegmentDataset, assert_split_isolation
-from .evaluation import FoldStyleEvaluator, calibrate_thresholds, summarize_records
+from .evaluation import FoldStyleEvaluator, calibrate_thresholds, discriminator_classification_metrics, summarize_records
 from .model import ConditionalGenerator, PatchDiscriminator
 from .segmentation import PITCH_HIGH, PITCH_LOW, STEPS_PER_BAR, Segment, encode_piece, quantization_errors, stitch_segments
-from .training import gan_step
+from .training import estimate_positive_weights, gan_step
 
-SCHEMA_VERSION = "e4.5.0"
+SCHEMA_VERSION = "e4.6.0"
+MODEL_DEFINITION = "conditional_instance_norm_identity_residual_v1"
+LOSS_DEFINITION = "masked_class_weighted_l1_v1"
+SELECTION_POLICY = "three_quantiles_content_style_sensitivity_v1"
 
 
 @dataclass(frozen=True)
@@ -50,13 +54,17 @@ class E4Config:
     seed: int = 1729
     batch_size: int = 16
     max_epochs: int = 30
-    patience: int = 5
+    min_epochs: int = 10
+    patience: int = 10
     learning_rate: float = .0002
     beta1: float = .5
     beta2: float = .999
     lambda_cls: float = 1.0
     lambda_cyc: float = 10.0
     lambda_id: float = 10.0
+    maximum_positive_weight: float = 12.0
+    onset_channel_weight: float = 2.0
+    frame_channel_weight: float = 1.0
     smoke_epochs: int = 2
     smoke_per_composer: int = 4
     smoke_files: int = 6
@@ -66,6 +74,7 @@ class E4Config:
     threshold_grid: tuple[float, ...] = tuple(value / 10 for value in range(1, 10))
     melody_similarity_min: float = .95
     fallback_rate_max: float = .01
+    target_event_similarity_max: float = .99
     onset_tolerance_beats: float = 1 / 16
     min_bar_quarter_notes: float = .5
     max_bar_quarter_notes: float = 12.0
@@ -83,11 +92,11 @@ def load_e4_config(path: Path | str) -> E4Config:
         raise ValueError(f"unsupported E4 config; expected {SCHEMA_VERSION}")
     inputs, output = raw.get("inputs", {}), raw.get("output", {})
     training, smoke = raw.get("training", {}), raw.get("smoke", {})
-    model, decoding, gates, audit = (raw.get(name, {}) for name in ("model", "decoding", "gates", "audit"))
+    model, loss, decoding, gates, audit = (raw.get(name, {}) for name in ("model", "loss", "decoding", "gates", "audit"))
     grid = tuple(float(value) for value in decoding.get("threshold_grid", [value / 10 for value in range(1, 10)]))
     if not grid or any(not 0 < value < 1 for value in grid):
         raise ValueError("decoding.threshold_grid must contain probabilities between zero and one")
-    return E4Config(
+    config = E4Config(
         manifest_path=_resolve(str(inputs["manifest"])),
         splits_path=_resolve(str(inputs["splits"])),
         dataset_root=_resolve(str(inputs["dataset_root"])),
@@ -97,20 +106,37 @@ def load_e4_config(path: Path | str) -> E4Config:
         repeat=int(raw.get("repeat", 0)), outer_fold=int(raw.get("outer_fold", 0)),
         inner_fold=int(raw.get("inner_fold", 0)), seed=int(raw.get("seed", 1729)),
         batch_size=int(training.get("batch_size", 16)), max_epochs=int(training.get("max_epochs", 30)),
-        patience=int(training.get("patience", 5)), learning_rate=float(training.get("learning_rate", .0002)),
+        min_epochs=int(training.get("min_epochs", 10)), patience=int(training.get("patience", 10)),
+        learning_rate=float(training.get("learning_rate", .0002)),
         beta1=float(training.get("beta1", .5)), beta2=float(training.get("beta2", .999)),
         lambda_cls=float(training.get("lambda_cls", 1)), lambda_cyc=float(training.get("lambda_cyc", 10)),
-        lambda_id=float(training.get("lambda_id", 10)), smoke_epochs=int(smoke.get("epochs", 2)),
+        lambda_id=float(training.get("lambda_id", 10)),
+        maximum_positive_weight=float(loss.get("maximum_positive_weight", 12)),
+        onset_channel_weight=float(loss.get("onset_channel_weight", 2)),
+        frame_channel_weight=float(loss.get("frame_channel_weight", 1)),
+        smoke_epochs=int(smoke.get("epochs", 2)),
         smoke_per_composer=int(smoke.get("per_composer", 4)), smoke_files=int(smoke.get("files", 6)),
         conv_dim=int(model.get("conv_dim", 32)), residual_blocks=int(model.get("residual_blocks", 3)),
         device=str(training.get("device", "auto")), threshold_grid=grid,
         melody_similarity_min=float(gates.get("melody_similarity_min", .95)),
         fallback_rate_max=float(gates.get("fallback_rate_max", .01)),
+        target_event_similarity_max=float(gates.get("target_event_similarity_max", .99)),
         onset_tolerance_beats=float(gates.get("onset_tolerance_beats", 1 / 16)),
         min_bar_quarter_notes=float(audit.get("min_bar_quarter_notes", .5)),
         max_bar_quarter_notes=float(audit.get("max_bar_quarter_notes", 12)),
         allow_terminal_partial_bar=bool(audit.get("allow_terminal_partial_bar", True)),
     )
+    if not 1 <= config.min_epochs <= config.max_epochs:
+        raise ValueError("training.min_epochs must be between one and max_epochs")
+    if config.patience < 1:
+        raise ValueError("training.patience must be positive")
+    if config.maximum_positive_weight < 1:
+        raise ValueError("loss.maximum_positive_weight must be at least one")
+    if config.onset_channel_weight <= 0 or config.frame_channel_weight <= 0:
+        raise ValueError("loss channel weights must be positive")
+    if not 0 <= config.target_event_similarity_max <= 1:
+        raise ValueError("gates.target_event_similarity_max must be between zero and one")
+    return config
 
 
 def _atomic_json(path: Path, payload: Any) -> None:
@@ -198,6 +224,7 @@ def _geometry(config: E4Config) -> dict[str, Any]:
         "bars_per_segment": 4, "steps_per_bar": STEPS_PER_BAR, "steps_per_segment": 64,
         "pitch_low": PITCH_LOW, "pitch_high": PITCH_HIGH, "channels": ["onset", "frame"],
         "composers": list(COMPOSERS), "conv_dim": config.conv_dim, "residual_blocks": config.residual_blocks,
+        "model_definition": MODEL_DEFINITION,
     }
 
 
@@ -390,6 +417,8 @@ def _checkpoint(
     best_key = [float(best)] if isinstance(best, (int, float)) else [float(value) for value in best]
     return {
         "schema_version": SCHEMA_VERSION, "epoch": epoch, "best_key": best_key,
+        "model_definition": MODEL_DEFINITION, "loss_definition": LOSS_DEFINITION,
+        "selection_policy": SELECTION_POLICY,
         "geometry": _geometry(config), "composer_to_index": {name: index for index, name in enumerate(COMPOSERS)},
         "generator": generator.state_dict(), "discriminator": discriminator.state_dict(),
         "generator_optimizer": generator_optimizer.state_dict(), "discriminator_optimizer": discriminator_optimizer.state_dict(),
@@ -496,11 +525,22 @@ def _infer_piece(
 def _selection_pieces(collection: Sequence[PieceSegments]) -> list[PieceSegments]:
     selected: list[PieceSegments] = []
     for composer in COMPOSERS:
-        candidates = [piece for piece in collection if piece.composer == composer]
+        candidates = sorted(
+            (piece for piece in collection if piece.composer == composer),
+            key=lambda piece: piece.sample_id,
+        )
         if not candidates:
             raise ValueError(f"validation split has no {composer} piece")
-        median = float(np.median([piece.segment_map.segment_count for piece in candidates]))
-        selected.append(min(candidates, key=lambda piece: (abs(piece.segment_map.segment_count - median), piece.sample_id)))
+        counts = [piece.segment_map.segment_count for piece in candidates]
+        targets = np.quantile(counts, (.25, .5, .75))
+        available = list(candidates)
+        for target in targets[:min(3, len(candidates))]:
+            choice = min(
+                available,
+                key=lambda piece: (abs(piece.segment_map.segment_count - float(target)), piece.sample_id),
+            )
+            selected.append(choice)
+            available.remove(choice)
     return selected
 
 
@@ -528,6 +568,7 @@ def _evaluate_collection(
 ) -> list[dict[str, Any]]:
     printer, parser = MidiPrettyPrinter(), MidiParser()
     records: list[dict[str, Any]] = []
+    generated_events: dict[str, list[tuple[int, Counter[tuple[int, int, int]]]]] = defaultdict(list)
     if output_dir:
         output_dir.mkdir(parents=True, exist_ok=True)
     for piece in pieces:
@@ -557,10 +598,21 @@ def _evaluate_collection(
                 **evaluator.evaluate(piece.sample_id, piece.segment_map.source, measured, target_composer),
             }
             records.append(record)
+            events = Counter((note.tick, note.pitch, note.duration_ticks) for note in measured.notes)
+            generated_events[piece.sample_id].append((len(records) - 1, events))
+    for values in generated_events.values():
+        if len(values) != 2:
+            continue
+        (_, left), (_, right) = values
+        intersection = sum((left & right).values())
+        union = sum((left | right).values())
+        similarity = intersection / union if union else 1.0
+        for index, _ in values:
+            records[index]["cross_target_event_similarity"] = similarity
     return records
 
 
-def _selection_key(records: Sequence[Mapping[str, Any]], config: E4Config) -> tuple[float, float, float, float]:
+def _selection_key(records: Sequence[Mapping[str, Any]], config: E4Config) -> tuple[float, float, float, float, float]:
     valid = np.mean([
         row["artifact_parseable"]
         and row["content"]["ticks_per_beat_preserved"]
@@ -580,8 +632,11 @@ def _selection_key(records: Sequence[Mapping[str, Any]], config: E4Config) -> tu
     nonempty_segments = sum(int(row["diagnostics"]["nonempty_input_segments"]) for row in records)
     fallback_segments = sum(int(row["diagnostics"]["fallback_segments"]) for row in records)
     negative_fallback_rate = -fallback_segments / max(1, nonempty_segments)
+    target_diversity = 1 - float(np.mean([
+        row.get("cross_target_event_similarity", 1.0) for row in records
+    ]))
     style = np.mean([row["delta_p_target"] for row in records])
-    return float(valid), float(content), float(negative_fallback_rate), float(style)
+    return float(valid), float(content), float(negative_fallback_rate), target_diversity, float(style)
 
 
 def _model_and_optimizers(config: E4Config, device: torch.device):
@@ -590,6 +645,28 @@ def _model_and_optimizers(config: E4Config, device: torch.device):
     generator_optimizer = torch.optim.Adam(generator.parameters(), lr=config.learning_rate, betas=(config.beta1, config.beta2))
     discriminator_optimizer = torch.optim.Adam(discriminator.parameters(), lr=config.learning_rate, betas=(config.beta1, config.beta2))
     return generator, discriminator, generator_optimizer, discriminator_optimizer
+
+
+def _smoke_semantic_sanity(source: Any, output: Any, *, onset_tolerance_beats: float) -> dict[str, Any]:
+    metrics = content_metrics(source, output, onset_tolerance_beats=onset_tolerance_beats)
+    source_edges = sum(note.pitch in {PITCH_LOW, PITCH_HIGH - 1} for note in source.notes)
+    output_edges = sum(note.pitch in {PITCH_LOW, PITCH_HIGH - 1} for note in output.notes)
+    note_ratio = float(metrics["note_count_ratio"])
+    polyphony_limit = max(16, 4 * int(metrics["max_polyphony_input"]))
+    passed = (
+        .25 <= note_ratio <= 4
+        and output_edges <= source_edges + 4
+        and int(metrics["max_polyphony_output"]) <= polyphony_limit
+    )
+    return {
+        "passed": passed,
+        "note_count_ratio": note_ratio,
+        "max_polyphony_input": int(metrics["max_polyphony_input"]),
+        "max_polyphony_output": int(metrics["max_polyphony_output"]),
+        "polyphony_limit": polyphony_limit,
+        "source_boundary_notes": source_edges,
+        "output_boundary_notes": output_edges,
+    }
 
 
 def smoke_e4(config: E4Config) -> Path:
@@ -618,6 +695,10 @@ def smoke_e4(config: E4Config) -> Path:
     _seed(config.seed)
     device = _device(config)
     generator, discriminator, generator_optimizer, discriminator_optimizer = _model_and_optimizers(config, device)
+    positive_weights = estimate_positive_weights(train, maximum=config.maximum_positive_weight).to(device)
+    channel_weights = torch.tensor(
+        [config.onset_channel_weight, config.frame_channel_weight], device=device,
+    )
     loader = DataLoader(train, batch_size=config.batch_size, shuffle=True)
     losses: list[float] = []
     for _ in range(config.smoke_epochs):
@@ -626,6 +707,8 @@ def smoke_e4(config: E4Config) -> Path:
             metrics = gan_step(
                 generator, discriminator, generator_optimizer, discriminator_optimizer, batch,
                 lambda_cls=config.lambda_cls, lambda_cyc=config.lambda_cyc, lambda_id=config.lambda_id,
+                reconstruction_positive_weights=positive_weights,
+                reconstruction_channel_weights=channel_weights,
             )
             losses.append(metrics.generator_loss)
     checkpoint = config.run_dir / "smoke.pt"
@@ -639,13 +722,19 @@ def smoke_e4(config: E4Config) -> Path:
         path = output_dir / f"{piece.sample_id}_to_{COMPOSERS[target]}.mid"
         MidiPrettyPrinter().write(rendered, path)
         parsed = MidiParser().parse(path)
+        semantic_sanity = _smoke_semantic_sanity(
+            piece.segment_map.source, parsed, onset_tolerance_beats=config.onset_tolerance_beats,
+        )
         results.append({
             "sample_id": piece.sample_id, "path": str(path), "parsed": True,
             "end_tick": piece.segment_map.end_tick,
             "result_end_tick": max((note.tick + note.duration_ticks for note in parsed.notes), default=0),
-            "diagnostics": diagnostics,
+            "diagnostics": diagnostics, "semantic_sanity": semantic_sanity,
         })
-    passed = len(results) == config.smoke_files and all(row["result_end_tick"] == row["end_tick"] for row in results)
+    passed = len(results) == config.smoke_files and all(
+        row["result_end_tick"] == row["end_tick"] and row["semantic_sanity"]["passed"]
+        for row in results
+    )
     path = config.run_dir / "smoke.json"
     _atomic_json(path, {"schema_version": SCHEMA_VERSION, "files": results, "passed": passed, "epochs": config.smoke_epochs})
     _atomic_json(config.run_dir / "status.json", {"schema_version": SCHEMA_VERSION, "status": "smoke_passed" if passed else "smoke_failed", "finished_at_utc": _utc()})
@@ -674,8 +763,14 @@ def train_e4(config: E4Config) -> Path:
     )
     _seed(config.seed)
     device = _device(config)
+    positive_weights = estimate_positive_weights(
+        datasets["train"], maximum=config.maximum_positive_weight,
+    ).to(device)
+    channel_weights = torch.tensor(
+        [config.onset_channel_weight, config.frame_channel_weight], device=device,
+    )
     generator, discriminator, generator_optimizer, discriminator_optimizer = _model_and_optimizers(config, device)
-    start, best_key, stale = 0, (-1.0, -1.0, -1.0, float("-inf")), 0
+    start, best_key, stale = 0, (-1.0, -1.0, -1.0, -1.0, float("-inf")), 0
     last_path = config.run_dir / "last.pt"
     if last_path.is_file():
         state = torch.load(last_path, map_location=device, weights_only=False)
@@ -692,14 +787,19 @@ def train_e4(config: E4Config) -> Path:
     for epoch in range(start, config.max_epochs):
         sampler.set_epoch(epoch)
         generator.train()
-        losses = []
+        epoch_metrics = []
         for raw in loader:
             batch = {key: value.to(device) for key, value in raw.items() if key in {"x", "mask", "source"}}
-            losses.append(gan_step(
+            epoch_metrics.append(gan_step(
                 generator, discriminator, generator_optimizer, discriminator_optimizer, batch,
                 lambda_cls=config.lambda_cls, lambda_cyc=config.lambda_cyc, lambda_id=config.lambda_id,
-            ).generator_loss)
+                reconstruction_positive_weights=positive_weights,
+                reconstruction_channel_weights=channel_weights,
+            ))
         generator.eval()
+        classification = discriminator_classification_metrics(
+            discriminator, datasets["validation"], device, batch_size=config.batch_size,
+        )
         thresholds = calibrate_thresholds(generator, selection, device, config.threshold_grid)
         preview = _evaluate_collection(config, generator, selection, evaluator, device, thresholds)
         key = _selection_key(preview, config)
@@ -709,7 +809,7 @@ def train_e4(config: E4Config) -> Path:
             _atomic_checkpoint(config.run_dir / "best.pt", _checkpoint(
                 config, epoch + 1, generator, discriminator, generator_optimizer, discriminator_optimizer,
                 best_key, thresholds=thresholds,
-                validation={"selection_key": list(key), "records": preview},
+                validation={"selection_key": list(key), "records": preview, "classification": classification},
             ))
         else:
             stale += 1
@@ -719,9 +819,18 @@ def train_e4(config: E4Config) -> Path:
         ))
         _append_jsonl(config.run_dir / "progress.jsonl", {
             "event": "epoch_completed", "stage": "train", "epoch": epoch + 1,
-            "generator_loss": float(np.mean(losses)), "selection_key": list(key), "improved": improved, "at_utc": _utc(),
+            **{
+                name: float(np.mean([getattr(item, name) for item in epoch_metrics]))
+                for name in (
+                    "discriminator_loss", "generator_loss", "adversarial_loss",
+                    "classification_loss", "cycle_loss", "identity_loss",
+                )
+            },
+            "positive_weights": positive_weights.detach().cpu().tolist(),
+            "discriminator_classification": classification,
+            "selection_key": list(key), "improved": improved, "at_utc": _utc(),
         })
-        if stale >= config.patience:
+        if epoch + 1 >= config.min_epochs and stale >= config.patience:
             break
     _atomic_json(config.run_dir / "status.json", {
         "schema_version": SCHEMA_VERSION, "status": "training_completed", "finished_at_utc": _utc(),
@@ -762,10 +871,17 @@ def _evaluate_scope(config: E4Config, scope: str) -> Path:
         config, model, collections[split], evaluator, device, thresholds,
         output_dir=config.run_dir / ("validation_midi" if scope == "validation" else "outer_test_midi"),
     )
-    summary = summarize_records(records, melody_min=config.melody_similarity_min, fallback_max=config.fallback_rate_max)
+    summary = summarize_records(
+        records,
+        melody_min=config.melody_similarity_min,
+        fallback_max=config.fallback_rate_max,
+        target_similarity_max=config.target_event_similarity_max,
+    )
     payload = {
         "schema_version": SCHEMA_VERSION, "scope": "inner_validation" if scope == "validation" else "outer_test",
         "created_at_utc": _utc(), "checkpoint_sha256": _sha256(checkpoint_path), "thresholds": thresholds,
+        "checkpoint_epoch": int(checkpoint["epoch"]),
+        "discriminator_classification": checkpoint.get("validation", {}).get("classification"),
         "records": records, "summary": summary,
     }
     _atomic_json(output_path, payload)
@@ -806,7 +922,7 @@ def report_e4(config: E4Config) -> Path:
         decision, explanation = "BLOKADA TECHNICZNA", "Audyt danych nie przeszedł bramki; trening pozostaje zablokowany."
     else:
         decision, explanation = "NIEKOMPLETNE", "Brak właściwej ewaluacji validation."
-    lines = ["# E4 — warunkowany GAN inspirowany StarGAN", "", f"Wygenerowano: {_utc()}", "", "## Decyzja", "", f"**{decision}.** {explanation}"]
+    lines = [f"# E4 — warunkowany GAN inspirowany StarGAN ({SCHEMA_VERSION})", "", f"Wygenerowano: {_utc()}", "", "## Decyzja", "", f"**{decision}.** {explanation}"]
     lines.extend([
         "", "## Stan potoku", "", "| Etap | Stan |", "|---|---|",
         f"| Audit | {'PASS' if audit and audit.get('gate', {}).get('passed') else 'brak/FAIL'} |",
@@ -832,8 +948,10 @@ def report_e4(config: E4Config) -> Path:
             f"- Liczba kierunkowych wyników: **{summary['record_count']}**.",
             f"- Średnie Δp_target: **{summary['mean_delta_p_target']:.4f}**.",
             f"- Dodatnie kierunki: **{sum(value > 0 for value in summary['direction_means'].values())}/6**.",
+            f"- Średnie podobieństwo dwóch stylów docelowych: **{summary['mean_cross_target_event_similarity']:.4f}**.",
             f"- Mediana podobieństwa melodii: **{summary['median_melody_trigram_jaccard']:.4f}**.",
             f"- Średni onset-F1: **{summary['mean_onset_f1']:.4f}**; chroma cosine: **{summary['mean_chroma_cosine']:.4f}**.",
+            f"- Zyski grup stylu pitch/rhythm/texture: **{summary['style_group_mean_gains']['pitch']:.4f} / {summary['style_group_mean_gains']['rhythm']:.4f} / {summary['style_group_mean_gains']['texture']:.4f}**.",
             f"- Fallback identity: **{summary['fallback_segments']}/{summary['nonempty_input_segments']} ({100 * summary['fallback_rate']:.2f}%)**.",
             f"- Osierocone początki frame: **{summary['orphan_frame_starts']}**; aktywne wysokości na końcach okien: **{summary['active_pitches_at_segment_ends']}**.",
             f"- Średni udział pustych taktów wejście/wynik: **{summary['mean_empty_bar_ratio_input']:.4f} / {summary['mean_empty_bar_ratio_output']:.4f}**.",
@@ -842,6 +960,13 @@ def report_e4(config: E4Config) -> Path:
             "", "| Kierunek | Średnie Δp_target |", "|---|---:|",
             *[f"| {direction} | {value:.4f} |" for direction, value in summary["direction_means"].items()],
         ])
+        classification = payload.get("discriminator_classification")
+        if classification:
+            lines.extend([
+                "",
+                f"Checkpoint: epoka **{payload.get('checkpoint_epoch')}**; balanced accuracy D_cls na validation: "
+                f"**{classification['balanced_accuracy']:.4f}**.",
+            ])
     lines.extend(["", "## Ograniczenia", "", "- E4 używa jednego seeda i jednego outer foldu; jest eksperymentem decyzyjnym, nie pełnym porównaniem modeli.", "- E1b pozostaje proxy skorelowanym z repertuarem i formą; wynik musi być czytany razem z metrykami treści.", "- Outer test nie służy do ponownego strojenia modelu ani progów."])
     text = "\n".join(lines) + "\n"
     run_report = config.run_dir / "report.md"

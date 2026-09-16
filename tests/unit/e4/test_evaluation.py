@@ -6,7 +6,8 @@ import numpy as np
 import pytest
 
 from musicians_style.e4.evaluation import binary_f1, summarize_records
-from musicians_style.e4.experiment import E4Config, _clean_binary_segment, test_e4 as run_outer_test
+from musicians_style.e4.experiment import E4Config, _clean_binary_segment, _smoke_semantic_sanity, test_e4 as run_outer_test
+from musicians_style.midi.types import InternalRepr, NoteEvent
 
 
 def test_binary_cleanup_carries_sustains_between_segments() -> None:
@@ -75,6 +76,18 @@ def test_frozen_gate_requires_all_content_and_style_contracts() -> None:
     assert not summarize_records(records, melody_min=.95, fallback_max=.01)["passed"]
 
 
+def test_gate_rejects_target_condition_collapse() -> None:
+    composers = ("Bach", "Beethoven", "Chopin")
+    records = [_record(source, target) for source in composers for target in composers if source != target]
+    for record in records:
+        record["cross_target_event_similarity"] = .999
+    summary = summarize_records(
+        records, melody_min=.95, fallback_max=.01, target_similarity_max=.99,
+    )
+    assert not summary["criteria"]["target_outputs_not_collapsed"]
+    assert not summary["passed"]
+
+
 def test_outer_test_is_locked_before_validation_go(tmp_path: Path) -> None:
     (tmp_path / "best.pt").write_bytes(b"not loaded before the lock")
     with pytest.raises(ValueError, match="locked"):
@@ -84,3 +97,14 @@ def test_outer_test_is_locked_before_validation_go(tmp_path: Path) -> None:
 def test_binary_f1_empty_contract() -> None:
     empty = np.zeros(0, dtype=np.uint8)
     assert binary_f1(empty, empty) == 1.0
+
+
+def test_smoke_semantic_gate_rejects_black_midi_density_and_boundaries() -> None:
+    source = InternalRepr(480, (NoteEvent(0, 0, 60, 90, 480),), (), 1)
+    dense_notes = tuple(
+        NoteEvent(step * 120, 0, pitch, 64, 120)
+        for step in range(8)
+        for pitch in range(24, 108)
+    )
+    dense = InternalRepr(480, dense_notes, (), 1)
+    assert not _smoke_semantic_sanity(source, dense, onset_tolerance_beats=1 / 16)["passed"]

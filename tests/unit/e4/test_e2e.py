@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 import torch
 
 from musicians_style.e4.dataset import PieceSegments
-from musicians_style.e4.experiment import E4Config, _atomic_checkpoint, _checkpoint, _infer_piece, _load_models
+from musicians_style.e4.experiment import E4Config, _atomic_checkpoint, _checkpoint, _infer_piece, _load_models, load_e4_config
 from musicians_style.e4.model import ConditionalGenerator, PatchDiscriminator
 from musicians_style.e4.segmentation import encode_piece
 from musicians_style.midi.parser import MidiParser
@@ -26,3 +28,12 @@ def test_checkpoint_to_full_midi_to_parse(tmp_path) -> None:
     reparsed = MidiParser().parse(output)
     assert reparsed.meta == source.meta
     assert max(note.tick + note.duration_ticks for note in reparsed.notes) == encode_piece(source).end_tick
+
+
+def test_v3_config_is_isolated_from_historical_run() -> None:
+    root = Path(__file__).resolve().parents[3]
+    config = load_e4_config(root / "configs" / "e4_asap_v3.yaml")
+    assert config.run_dir == root / "experiments" / "e4_asap_v3"
+    assert config.summary_path == root / "docs" / "results" / "E4_v3.md"
+    assert config.min_epochs == config.patience == 10
+    assert config.maximum_positive_weight == 12

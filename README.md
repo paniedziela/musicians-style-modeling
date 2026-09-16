@@ -99,7 +99,7 @@ sesji serwera. Aplikacja działa lokalnie, bez CDN i zewnętrznych usług.
 ```powershell
 # Inny katalog, SoundFont i port
 .venv\Scripts\python.exe -m musicians_style.listener `
-  --root experiments/e4_asap_v2 --soundfont soundfonts/FluidR3_GM.sf2 --port 8766
+  --root experiments/e4_asap_v3 --soundfont soundfonts/FluidR3_GM.sf2 --port 8766
 ```
 
 Po zainstalowaniu aktualnego pakietu dostępne jest też polecenie `midi-listen`.

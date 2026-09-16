@@ -23,11 +23,47 @@ def different_targets(source: torch.Tensor, *, num_classes: int, generator: torc
     return target
 
 
-def masked_l1(prediction: torch.Tensor, target: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
+def masked_l1(
+    prediction: torch.Tensor,
+    target: torch.Tensor,
+    mask: torch.Tensor,
+    *,
+    positive_weights: torch.Tensor | None = None,
+    channel_weights: torch.Tensor | None = None,
+) -> torch.Tensor:
     if prediction.shape != target.shape or prediction.ndim != 4 or mask.shape != prediction.shape[:1] + prediction.shape[2:3]:
         raise ValueError("invalid prediction, target, or [B, 64] mask shape")
-    weights = mask[:, None, :, None].to(dtype=prediction.dtype)
-    return ((prediction - target).abs() * weights).sum() / (weights.sum() * prediction.shape[1] * prediction.shape[3]).clamp_min(1)
+    weights = mask[:, None, :, None].to(dtype=prediction.dtype).expand_as(prediction)
+    if positive_weights is not None:
+        positive_weights = positive_weights.to(device=prediction.device, dtype=prediction.dtype)
+        if positive_weights.shape != (prediction.shape[1],):
+            raise ValueError("positive_weights must contain one value per channel")
+        weights = weights * (1 + target * (positive_weights[None, :, None, None] - 1))
+    if channel_weights is not None:
+        channel_weights = channel_weights.to(device=prediction.device, dtype=prediction.dtype)
+        if channel_weights.shape != (prediction.shape[1],):
+            raise ValueError("channel_weights must contain one value per channel")
+        weights = weights * channel_weights[None, :, None, None]
+    return ((prediction - target).abs() * weights).sum() / weights.sum().clamp_min(1)
+
+
+def estimate_positive_weights(dataset: object, *, maximum: float = 12.0) -> torch.Tensor:
+    """Estimate capped per-channel negative/positive ratios from train only."""
+    if maximum < 1:
+        raise ValueError("maximum positive weight must be at least one")
+    positives = torch.zeros(2, dtype=torch.float64)
+    cells = torch.zeros(2, dtype=torch.float64)
+    for index in range(len(dataset)):  # type: ignore[arg-type]
+        row = dataset[index]  # type: ignore[index]
+        x = torch.as_tensor(row["x"], dtype=torch.float64)
+        mask = torch.as_tensor(row["mask"], dtype=torch.bool)
+        valid = x[:, mask, :]
+        positives += valid.sum(dim=(1, 2))
+        cells += valid.shape[1] * valid.shape[2]
+    if bool((positives <= 0).any()):
+        raise ValueError("training data must contain positive onset and frame cells")
+    ratios = (cells - positives).clamp_min(0) / positives
+    return ratios.clamp(min=1.0, max=maximum).to(dtype=torch.float32)
 
 
 @dataclass(frozen=True)
@@ -45,6 +81,8 @@ def gan_step(
     generator: ConditionalGenerator, discriminator: PatchDiscriminator, generator_optimizer: torch.optim.Optimizer,
     discriminator_optimizer: torch.optim.Optimizer, batch: dict[str, torch.Tensor], *, num_classes: int = 3,
     lambda_cls: float = 1.0, lambda_cyc: float = 10.0, lambda_id: float = 10.0,
+    reconstruction_positive_weights: torch.Tensor | None = None,
+    reconstruction_channel_weights: torch.Tensor | None = None,
     target_generator: torch.Generator | None = None,
 ) -> StepMetrics:
     x, mask, source = batch["x"], batch["mask"], batch["source"]
@@ -69,8 +107,12 @@ def gan_step(
     classification_loss = F.cross_entropy(fake_class, target)
     cycled = torch.sigmoid(generator(fake, source))
     identity = torch.sigmoid(generator(x, source))
-    cycle_loss = masked_l1(cycled, x, mask)
-    identity_loss = masked_l1(identity, x, mask)
+    reconstruction = {
+        "positive_weights": reconstruction_positive_weights,
+        "channel_weights": reconstruction_channel_weights,
+    }
+    cycle_loss = masked_l1(cycled, x, mask, **reconstruction)
+    identity_loss = masked_l1(identity, x, mask, **reconstruction)
     generator_loss = adversarial_loss + lambda_cls * classification_loss + lambda_cyc * cycle_loss + lambda_id * identity_loss
     generator_loss.backward()
     generator_optimizer.step()

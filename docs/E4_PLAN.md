@@ -28,6 +28,44 @@ jako wyniku E4.4/E4.5. Nowy protokół zapisuje artefakty do
 i walidacji. Etap `test` wolno uruchomić tylko wtedy, gdy `validation.json`
 zawiera `passed: true`.
 
+## Addendum E4.6 (2026-09-16)
+
+Pierwsza walidacja E4.5 zakończyła się NO-GO i ujawniła collapse warunku celu:
+11 z 43 par wyników dla dwóch różnych kompozytorów docelowych było identycznych,
+a mediana podobieństwa zdarzeń nutowych wyniosła `0,9946`. Pliki technicznego
+smoke miały dodatkowo od 9 do 32 razy więcej nut niż wejścia.
+
+E4.6 jest izolowanym wariantem w schemacie `e4.6.0`, konfiguracji
+`configs/e4_asap_v3.yaml` i katalogu `experiments/e4_asap_v3`. Nie ładuje
+checkpointów E4.5. Zmiany protokołu:
+
+- warunek kompozytora steruje affine parameters po InstanceNorm
+  (conditional InstanceNorm/FiLM), zamiast być stałą mapą usuwaną przez
+  normalizację;
+- generator przewiduje residual względem bezpiecznego logitowego identity;
+- identity i cycle używają ważonego L1 z wagami dodatnich onset/frame
+  wyznaczonymi wyłącznie z train i ograniczonymi do wartości `12`;
+- selection używa trzech kwantyli długości utworów na kompozytora i jawnie
+  premiuje różnicę pomiędzy dwoma celami;
+- finalna bramka odrzuca średnie podobieństwo zdarzeń dwóch celów `>= 0,99`;
+- progress zapisuje wszystkie składowe lossu, wagi rekonstrukcji oraz balanced
+  accuracy i macierz pomyłek głowy klasyfikującej dyskryminatora;
+- smoke sprawdza także gęstość nut, skrajne wysokości i polifonię, a nie tylko
+  możliwość odczytu oraz długość pliku.
+
+Pierwszy smoke E4.6 usunął wcześniejszy black-MIDI failure: sześć wyników ma
+`0,70–1,00x` liczby nut wejścia, nie generuje nut na granicach 24/107 i zachowuje
+zakres wysokości źródła. Nie jest to jeszcze wynik walidacji ani dowód transferu.
+
+Polecenia nowego wariantu:
+
+```powershell
+python -m musicians_style.e4 --config configs/e4_asap_v3.yaml --stage smoke
+python -m musicians_style.e4 --config configs/e4_asap_v3.yaml --stage train
+python -m musicians_style.e4 --config configs/e4_asap_v3.yaml --stage evaluate
+python -m musicians_style.e4 --config configs/e4_asap_v3.yaml --stage report
+```
+
 ## Rola E4 w pracy
 
 | Etap | Rola |
@@ -372,17 +410,18 @@ Każdy run zapisuje snapshot konfiguracji i splitów, commit, seed, wersje schem
 `audit.json`, `segments.jsonl`, `progress.jsonl`, `last.pt`, `best.pt`, progi
 dekodowania, metryki per plik/kierunek oraz `status.json`.
 
-Planowane wywołania:
+Aktualne wywołania E4.6 (`configs/e4_asap.yaml` pozostaje historycznym
+snapshotem E4.5 i jest celowo niezgodny z nowym schematem):
 
 ```powershell
-python -m musicians_style.e4 --config configs/e4_asap.yaml --stage audit
-python -m musicians_style.e4 --config configs/e4_asap.yaml --stage prepare
-python -m musicians_style.e4 --config configs/e4_asap.yaml --stage smoke
-python -m musicians_style.e4 --config configs/e4_asap.yaml --stage train
-python -m musicians_style.e4 --config configs/e4_asap.yaml --stage evaluate
+python -m musicians_style.e4 --config configs/e4_asap_v3.yaml --stage audit
+python -m musicians_style.e4 --config configs/e4_asap_v3.yaml --stage prepare
+python -m musicians_style.e4 --config configs/e4_asap_v3.yaml --stage smoke
+python -m musicians_style.e4 --config configs/e4_asap_v3.yaml --stage train
+python -m musicians_style.e4 --config configs/e4_asap_v3.yaml --stage evaluate
 # Tylko po validation GO:
-python -m musicians_style.e4 --config configs/e4_asap.yaml --stage test
-python -m musicians_style.e4 --config configs/e4_asap.yaml --stage report
+python -m musicians_style.e4 --config configs/e4_asap_v3.yaml --stage test
+python -m musicians_style.e4 --config configs/e4_asap_v3.yaml --stage report
 ```
 
 ## Kryterium zamknięcia E4
