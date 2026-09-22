@@ -1,0 +1,46 @@
+{
+  "schema_version": "e3-public-example-1",
+  "method": "E3",
+  "historical_task_id": "full__r00__f02__bach--prelude-bwv-868__to__Beethoven__s1729",
+  "source_composer": "Bach",
+  "source_work": "Prelude BWV 868",
+  "target_composer": "Beethoven",
+  "fold": 2,
+  "seed": 1729,
+  "elapsed_seconds": 95.29130029999942,
+  "profile_fingerprint": "2255808e6f6d3da887bcf112a39f584a654084e8c66a1854d4e4fada2344d76a",
+  "best_genome": {
+    "transpose_semitones": 4,
+    "rhythm_strength": 0.0,
+    "duration_strength": 0.0,
+    "thin_strength": 0.004004606807941071,
+    "double_strength": 0.20557878137986582
+  },
+  "style_gain": 0.16746672423143938,
+  "group_gains": {
+    "pitch": 0.3098867082699327,
+    "rhythm": 0.04199504417951683,
+    "texture": 0.1505184202448686
+  },
+  "independent_proxy": {
+    "p_target_input": 0.011764427070769417,
+    "p_target_output": 0.0336510559690187,
+    "delta_p_target": 0.02188662889824928
+  },
+  "content": {
+    "length_error": 0.0,
+    "note_count_input": 417,
+    "note_count_output": 439,
+    "note_count_ratio": 1.052757793764988,
+    "onset_f1": 1.0,
+    "melody_trigram_jaccard": 1.0,
+    "chroma_cosine": 0.509722169165827,
+    "max_polyphony_input": 5,
+    "max_polyphony_output": 6,
+    "bar_count_preserved": true,
+    "roundtrip_valid": true
+  },
+  "input_sha256": "5a65ad5282c58686d2a0ff2b287d6befa9efc0de748ab37b02940b9af499bc0f",
+  "output_sha256": "9bcb9f9a3d307be31b8a815c689c049bfd106ceea57fe5d3e9f2f291fb80ab54",
+  "interpretation": "Selected historical E3 result. Positive objective and proxy changes do not by themselves prove perceptual style transfer."
+}

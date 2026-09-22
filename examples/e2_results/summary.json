@@ -1,0 +1,23 @@
+{
+  "schema_version": "e2-public-summary-1",
+  "experiment": "E2",
+  "role": "frozen four-parameter GA baseline",
+  "task_count": 300,
+  "delta_p_target": {
+    "mean": 0.027665697567699148,
+    "median": 0.009623865532329686,
+    "ci95_clustered": [
+      0.019861030788999225,
+      0.03623199524989501
+    ],
+    "sign_permutation_p_value": 0.001
+  },
+  "content": {
+    "mean_length_error": 0.36973332695764705,
+    "mean_onset_f1": 0.3648786173293137,
+    "mean_melody_trigram_jaccard": 0.990337831059404,
+    "roundtrip_valid_rate": 1.0
+  },
+  "interpretation": "Positive proxy gain with substantial rhythm and length degradation; baseline result, not evidence of successful style transfer.",
+  "full_report": "docs/results/E2.md"
+}

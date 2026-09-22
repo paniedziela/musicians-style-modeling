@@ -24,6 +24,8 @@ i transferu stylu pomiędzy plikami MIDI.
   operacjami i twardą ochroną melodii, metrum oraz długości.
 - [Porządkowanie literatury](docs/LITERATURA.md) — kryteria redukcji 173 pozycji,
   literatura rdzeniowa i proponowana struktura przeglądu.
+- [Publiczne przykłady](examples/README.md) — krótkie porównania MIDI/WAV E3
+  (Preludium Bacha i „Kotek”) oraz zagregowane wyniki i wykresy E2.
 
 E1 jest zamknięty decyzją GO (`balanced accuracy E1b = 0,864`; testy E1/GA:
 `105 passed`). E2 służy jako zamrożony baseline obecnego GA przed przebudową
@@ -242,7 +244,7 @@ pytest -m property
 pytest -m "not slow"
 ```
 
-Stan audytu z 1 września 2026: **453 testy przechodzą**. Nie oznacza to jeszcze
+Stan weryfikacji z 22 września 2026: **521 testów przechodzi**. Nie oznacza to jeszcze
 poprawności metody badawczej: brakuje m.in. testu pełnego utworu dłuższego niż
 jedno okno, prawdziwego testu zachowania długości, porównania domen A↔B oraz
 walidacji jakości transferu na wydzielonym zbiorze.

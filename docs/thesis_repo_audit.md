@@ -2,7 +2,7 @@
 
 Data audytu: **13 września 2026**.
 
-**Analizowany commit HEAD: `1df257a891178d61fd019b9cb23c18f4d9ba4ac7`** (`add E4 improvement handoff`, 2026-09-04 01:32:23 +0200). Przed audytem `git status --short` był pusty. Hash oznacza wersję kodu i dokumentacji śledzonej przez Git. Analiza obejmuje także zastane, ignorowane przez Git lokalne dane i eksperymenty; ich zawartości nie da się odtworzyć wyłącznie z tego commita. Nie jest to hash kodu użytego we wszystkich historycznych treningach.
+**Analizowany commit HEAD: `f58f084963cfe8281a22b7c0ec88aebaac667d59`** (`add E4 improvement handoff`, 2026-09-04 01:32:23 +0200). Przed audytem `git status --short` był pusty. Hash oznacza wersję kodu i dokumentacji śledzonej przez Git po metadanej anonimizacji historii. Analiza obejmuje także zastane, ignorowane przez Git lokalne dane i eksperymenty; ich zawartości nie da się odtworzyć wyłącznie z tego commita. Nie jest to hash kodu użytego we wszystkich historycznych treningach.
 
 Zakres: źródła, konfiguracje, testy, historia Git, dokumentacja, lokalne manifesty/cache/splity, JSON/CSV/JSONL, checkpointy E4, wykresy i próbki MIDI, struktura notebooków dostawcy danych oraz materiały pomocnicze. Nie przeprowadzono treningu, nowych eksperymentów muzycznych, odsłuchu ani refaktoryzacji. Nie modyfikowano zastanych wyników. Zapisane niżej liczby eksperymentalne pochodzą z istniejących artefaktów; kontrole integralności i uruchomienie testów są czynnościami audytu.
 
@@ -354,7 +354,7 @@ Jeden E4.6 zgodny z handoffem w nowym katalogu; rendering WAV i wizualizacje par
 | Priorytet | Problem potwierdzony / ryzyko | Dowód i znaczenie |
 |---|---|---|
 | Wysoki | Stara zainstalowana kopia pakietu | Bez PYTHONPATH import prowadzi do `.venv/lib/site-packages/musicians_style`; testy nie widzą E1–E4. Oceniać aktualny `src`, nie przypadkowy build |
-| Wysoki | Niepełne provenance commita eksperymentów | E2 run manifest zapisuje `9f7177e...`, który nie zawiera `e2/experiment.py`; cache E1b zapisuje `08e4cc6...`, który nie zawiera `composition_features.py`. HEAD sam nie obejmuje dirty/untracked kodu z chwili uruchomienia |
+| Wysoki | Niepełne provenance commita eksperymentów | E2 run manifest zapisuje przedpublikacyjny `9f7177e...` (publiczny odpowiednik po anonimizacji: `11ea480...`), który nie zawiera `e2/experiment.py`; cache E1b zapisuje przedpublikacyjny `08e4cc6...` (publiczny odpowiednik: `a574b46...`), który nie zawiera `composition_features.py`. HEAD sam nie obejmuje dirty/untracked kodu z chwili uruchomienia |
 | Wysoki | Słabsze provenance E3/E4 | E3 run/task manifest nie zapisuje code_commit ani kompletnego environment/source snapshot. E4 prepared status miał commit, lecz kolejne statusy go zastępują; checkpointy nie mają commit. Geometry/schema/input snapshots nie identyfikują całego kodu |
 | Wysoki | Repertuar/forma/epoka confounding | E1 form errors, prawie idealny Bach, mała i nierówna próba. To nie bezpośredni split leakage, ale ogranicza twierdzenie o samym stylu |
 | Wysoki | Cel E3 słabo zgodny z proxy | `closure_analysis.objective_alignment`: r=0,04395, 48 regressions proxy przy poprawie celu. Nie traktować zbieżności celu jako jakości transferu |
@@ -383,7 +383,7 @@ Jeden E4.6 zgodny z handoffem w nowym katalogu; rendering WAV i wizualizacje par
 **Kontrola testów wykonana w audycie:**
 
 1. `.venv\Scripts\python.exe -m pytest -q tests/unit` — **20 błędów collection**: import starego pakietu, brak E1–E4/shared content/nowych funkcji distance. Nie są to wyniki assertów bieżącego kodu.
-2. Po ustawieniu procesowego `PYTHONPATH=D:\Studia\inzynierka_dev\src`, `PYTHONDONTWRITEBYTECODE=1`: `.venv\Scripts\python.exe -m pytest -q -p no:cacheprovider tests/unit` — **458 passed, 14 warnings, 48,40 s**. Ostrzeżenia dotyczą bibliotek/deprecations; bez fail testów. Nie uruchamiano całego property/integration suite ani długiego treningu, więc nie podaje się tej liczby jako wyniku wszystkich testów repo.
+2. Po ustawieniu procesowego `PYTHONPATH=src`, `PYTHONDONTWRITEBYTECODE=1`: `.venv\Scripts\python.exe -m pytest -q -p no:cacheprovider tests/unit` — **458 passed, 14 warnings, 48,40 s**. Ostrzeżenia dotyczą bibliotek/deprecations; bez fail testów. Nie uruchamiano całego property/integration suite ani długiego treningu, więc nie podaje się tej liczby jako wyniku wszystkich testów repo.
 3. Sprawdzenie 25 outer foldów i ich inner partitions: brak przecięcia sample/group/SHA. Sprawdzenie SHA 300 output MIDI E2 i 300 E3: **0 niezgodności** względem zapisanych wyników. E2/E3 backup results są identyczne z głównymi. Potwierdzono obecność 86 validation MIDI E4 i brak outer_test.json.
 4. Checkpointy E4 odczytano na CPU z `weights_only=True` bez inferencji/treningu. Historyczny epoch021 nie dał się odczytać tym trybem z powodu obiektu NumPy; nie przełączano na pełne ładowanie pickle. Wnioski o jego historycznych lossach pochodzą z JSONL, nie z odtworzonego modelu.
 
@@ -401,7 +401,7 @@ Maksymalnie pięć działań, w kolejności wartości dla pracy względem kosztu
 
 | Twierdzenie | Plik / funkcja / wynik | Dowód | Pewność |
 |---|---|---|---|
-| Commit analizowanego kodu | `git rev-parse HEAD`, `git log -1` | `1df257a891178d61fd019b9cb23c18f4d9ba4ac7`; clean przed audytem | Wysoka |
+| Commit analizowanego kodu | `git rev-parse HEAD`, `git log -1` | `f58f084963cfe8281a22b7c0ec88aebaac667d59`; clean przed audytem | Wysoka |
 | Local artifacts poza commitem | `.gitignore`, lokalne drzewa danych/runów | Ignorowane datasets/experiments/PDF/checkpoints są obecne | Wysoka |
 | Obecny pipeline różni się od starego audytu | `e1/`–`e4/`, `docs/results/` | Ukończone E1–E3 i validation E4; audit z 1 IX mówi o wcześniejszych brakach | Wysoka |
 | 150 score / 87 grup | `datasets/derived/e1_asap/quality_report.json` | 59/57/34 samples, 30/28/29 groups | Wysoka |

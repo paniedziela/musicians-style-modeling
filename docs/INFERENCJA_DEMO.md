@@ -1,6 +1,6 @@
 # Inferencja E3 i eksperymentalna E4.6 na własnym MIDI
 
-Uruchamiaj w `D:\Studia\inzynierka_dev`. Nowa inferencja wykorzystuje istniejące
+Uruchamiaj w katalogu głównym repozytorium. Nowa inferencja wykorzystuje istniejące
 `E3GeneticAlgorithm.run`, bez klasyfikatora E1, treningu i eksperymentów zbiorczych.
 E4.6 korzysta z lokalnego checkpointu oraz istniejących `encode_piece` i
 `_infer_piece` (łącznie z progami dekodera i fallbackiem). Nie uruchamia
@@ -36,7 +36,7 @@ Pełne domyślne wyszukiwanie (32 osobniki, 60 generacji, seed 1729, stagnacja 1
 Szybka konfiguracja demonstracyjna (nie powtórzenie historycznej ewaluacji):
 
 ```powershell
-.venv\Scripts\python.exe -m musicians_style.e3 infer --input "inference_workspace/demo/input.mid" --target Beethoven --output "inference_workspace/demo/nowy_wynik.mid" --generations 3 --population-size 8 --seed 1729
+.venv\Scripts\python.exe -m musicians_style.e3 infer --input "examples/e3_bach_prelude/input_bach_bwv868.mid" --target Beethoven --output "inference_workspace/demo/nowy_wynik.mid" --generations 3 --population-size 8 --seed 1729
 ```
 
 Obok MIDI powstaje JSON z pochodzeniem profilu, hashami, seedem, konfiguracją,
@@ -136,7 +136,8 @@ Po zakończeniu użyj **Pobierz wynik MIDI**, rozwiń raport, a w listenerze
 porównaj A/B, piano roll i przewijanie. Oryginał zadania trafia do A, wynik do B.
 Zostaw tempo **1×**. Synteza jest oddzielnym etapem — jej błąd nie blokuje
 pobrania poprawnego MIDI. Potrzebne są lokalne `pretty_midi`, `pyFluidSynth`,
-biblioteka FluidSynth i `soundfonts/FluidR3_GM.sf2`; są dostępne na tym komputerze.
+biblioteka FluidSynth i `soundfonts/FluidR3_GM.sf2`; należy je przygotować przed
+uruchomieniem syntezy.
 
 Każde zadanie zapisuje `input.mid`, `output.mid` i `output.json` w nowym
 `inference_workspace/web/<identyfikator>/`. HTTP nie przyjmuje ścieżki wyjścia.
@@ -150,24 +151,32 @@ stronę (Ctrl+F5)** — działający proces Python nie przeładowuje kodu automa
 
 ## Gotowy przykład i scenariusz 2–3 minuty
 
-Przygotowano nowe `inference_workspace/demo/input.mid` (syntetyczna fraza,
-96 nut, 32 onsety, spoza ASAP) oraz `output.mid` i `output.json`, uzyskane
-przez nowe CLI: Beethoven, seed 1729, 3 generacje, populacja 8.
-Pochodzenie wejścia: `demo/provenance.json`. Nie są to historyczne wyniki.
-Ten przebieg trwał około 0,34 s samego wyszukiwania i raportowania; długość
-wejścia ma istotny wpływ na czas kolejnych uruchomień.
+W [`examples/e3_bach_prelude`](../examples/e3_bach_prelude/) znajduje się krótki
+Preludium C-dur BWV 868 J.S. Bacha z ASAP oraz rzeczywisty wynik pełnego zadania
+E3 dla stylu Beethoven (fold 2, seed 1729). Wejście ma 417 nut, a wynik 439;
+oba trwają około 38 s. Pliki WAV umożliwiają odsłuch bez lokalnej syntezy,
+a `result.json` i `provenance.json` opisują metryki oraz pochodzenie danych.
+To historyczny wynik eksperymentu, nie rezultat pokazanej wyżej szybkiej
+konfiguracji demonstracyjnej.
+
+Dodatkowo [`examples/e3_kotek`](../examples/e3_kotek/) zawiera to samo krótkie
+wejście oraz trzy przygotowane wyniki: Bach, Beethoven i Chopin. Jest to wygodne
+porównanie odsłuchowe; dla tych plików nie zachowały się raporty ani dokładne
+konfiguracje przebiegów, co zaznaczono w ich opisie pochodzenia.
 
 1. Uruchom listener. Dla krótkiej listy demo zamień `--root .` na
-   `--root inference_workspace/demo`; pozostałe argumenty pozostają takie same.
-2. Załaduj `input.mid` do A. Wybierz Beethoven, **3 generacje / 8 osobników**.
-   Powiedz, że to uproszczony budżet demonstracyjny, bez walidacji skuteczności.
-3. Uruchom E3. Pokaż postęp, status, MIDI do pobrania i raport.
-4. Przełącz A/B i pokaż piano roll. W przygotowanym przykładzie wystąpiła
-   transpozycja **−2 półtony**; długość nutowego materiału pozostała bez zmian.
-   Zysk celu wyniósł około **0,683**, ale grupy pitch i rhythm pogorszyły się,
-   a texture poprawiła — sama średnia nie dowodzi udanego transferu stylu.
-5. Jeśli wystąpi problem, załaduj gotowy `output.mid` do B i wyraźnie nazwij
-   go wcześniej przygotowanym wynikiem nowego CLI.
+   `--root examples/e3_bach_prelude`; pozostałe argumenty pozostają takie same.
+2. Załaduj `input_bach_bwv868.mid` do A, a `output_beethoven.mid` do B.
+3. Przełącz A/B, pokaż piano roll i odsłuch. W przygotowanym wyniku wystąpiła
+   transpozycja **+4 półtony**, liczba nut wzrosła z 417 do 439, a czas nutowego
+   materiału pozostał bez zmian.
+4. Pokaż `result.json`: zysk celu wyniósł około **0,167**, a zmiana udziału
+   docelowego stylu około **0,0219**. To miary modelu, nie procent podobieństwa
+   do kompozytora ani dowód udanego transferu.
+5. Opcjonalnie uruchom szybki przebieg 3 generacje / 8 osobników i pokaż postęp,
+   status oraz raport. Wynik może różnić się od przygotowanego pełnego przebiegu.
+6. Jako drugi odsłuch otwórz `examples/e3_kotek` i porównaj trzy style dla
+   identycznego wejścia.
 
 ## Weryfikacja i granice sprawdzenia
 
@@ -186,23 +195,8 @@ nie są dowodem jakości wytrenowanych wag.
 .venv\Scripts\python.exe -m pytest -q -p no:cacheprovider tests/unit/e3 tests/unit/e4 tests/unit/test_listener.py tests/unit/test_inference_midi_events.py tests/unit/test_content_metrics.py
 ```
 
-Osobno wykonano rzeczywisty HTTP upload → inferencja → pobranie identycznego
-z CLI MIDI → odczyt piano roll → synteza WAV oryginału i wyniku (22050 Hz,
-oba około 16,88 s z wybrzmieniem). Zapis: `demo/web_check.json`.
-Po rozszerzeniu obsługi MIDI wykonano nowy przykład w
-`inference_workspace/controllers_demo/`: fraza z `demo/input.mid` plus
-CC7 (głośność), CC64 (sustain) i pitch bend. `e3.mid` oraz `e4.mid` powstały
-przez nowe CLI, E4 z rzeczywistym checkpointem epoki 9. Oba wyniki były
-zmienione; powtórzenie przez HTTP dało identyczne bajty, identyczne zdarzenia
-wykonawcze i poprawne WAV (~17,25 s). Szczegóły: `controllers_demo/web_check.json`.
-Skrypt `controllers_demo/check.py` odtwarza test HTTP w nowych katalogach zadań.
-Interaktywne klikanie interfejsu nie zostało sprawdzone: narzędzie CUA nie
-udostępniało żadnej przeglądarki. Nie wykonano oceny słuchowej ani pełnych
-eksperymentów, treningu, testów property i zewnętrznego testu E4.
-
-**Przed spotkaniem osobiście sprawdź** upload własnego MIDI, uruchomienie panelu,
-pobieranie, przełączanie A/B, przewijanie oraz głośniki i jakość muzyczną.
-Plik ze sustainem (CC64) jest teraz przyjmowany w domyślnym trybie; sprawdź odsłuch,
-ponieważ algorytmy nie uwzględniają jego wpływu w metrykach nutowych.
-Zabierz profile i SoundFont wraz z kodem; sam Git nie przenosi środowiska
-ani lokalnych artefaktów.
+Osobno wykonano rzeczywisty przepływ HTTP: upload → inferencja → pobranie
+identycznego z CLI MIDI → odczyt piano roll → synteza WAV oryginału i wyniku.
+Publiczne WAV-y mają 22 050 Hz: para z `examples/e3_bach_prelude` trwa około
+39,0 s, a pliki z `examples/e3_kotek` około 18,67 s (z wybrzmieniem).
+Nie wykonano oceny słuchowej ani zewnętrznego testu E4.

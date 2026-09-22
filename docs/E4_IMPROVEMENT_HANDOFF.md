@@ -10,8 +10,8 @@ trzech domen.
 
 ## Stan zastany
 
-- Punkt odniesienia kodu: commit `72c4478` (`first E4 training results`).
-- Implementacja bazowa E4.5: commit `2a1ace2`.
+- Punkt odniesienia kodu: commit `8ea3a73` (`first E4 training results`).
+- Implementacja bazowa E4.5: commit `2bba874`.
 - Run: `experiments/e4_asap_v2`.
 - Schemat: `e4.5.0`.
 - Audit: PASS; 0 błędów parsera, 8 jawnych wykluczeń.

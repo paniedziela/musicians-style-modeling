@@ -1,0 +1,15 @@
+{
+  "input": {
+    "dataset": "ASAP — Aligned Scores and Performances",
+    "dataset_path": "Bach/Prelude/bwv_868/midi_score.mid",
+    "work": "Johann Sebastian Bach — Prelude BWV 868",
+    "change": "The score MIDI is copied unchanged from the locally audited ASAP dataset.",
+    "license": "CC BY-NC-SA 4.0",
+    "license_url": "https://creativecommons.org/licenses/by-nc-sa/4.0/",
+    "citation": "Foscarin, McLeod, Rigaux, Jacquemard and Sakai, ASAP: a dataset of aligned scores and performances for piano transcription, ISMIR 2020, pp. 534–541."
+  },
+  "output": {
+    "change": "Adapted from the input score by the E3 genetic algorithm toward a Beethoven training profile; MIDI rendered to WAV with FluidSynth and FluidR3_GM.sf2.",
+    "license": "CC BY-NC-SA 4.0"
+  }
+}

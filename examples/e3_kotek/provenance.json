@@ -1,0 +1,23 @@
+{
+  "input": {
+    "original_local_path": "datasets/sample/kotek/KOTEK.MID",
+    "recorded_source": null,
+    "recorded_author": null,
+    "recorded_license": null,
+    "midi_embedded_copyright": null,
+    "status": "Local sample present since 2021; original external source was not recorded."
+  },
+  "outputs": {
+    "method": "E3",
+    "targets": ["Bach", "Beethoven", "Chopin"],
+    "exact_run_configuration_available": false,
+    "status": "Existing local transformed files; treated as a qualitative demonstration only."
+  },
+  "audio": {
+    "renderer": "FluidSynth",
+    "soundfont": "FluidR3_GM.sf2 (not distributed)",
+    "sample_rate_hz": 22050,
+    "channels": 1,
+    "sample_width_bits": 16
+  }
+}

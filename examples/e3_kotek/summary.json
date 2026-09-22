@@ -1,0 +1,39 @@
+{
+  "schema_version": "e3-kotek-public-summary-1",
+  "input_sha256": "bfa166c048a3e2fd163073e2f7ffc6e8dfcc5c25a0e1896cd82ec733ffc09a1a",
+  "input_seconds": 17.666666666666664,
+  "input_note_count": 168,
+  "variants": {
+    "Bach": {
+      "output_sha256": "8b533456129eb529d78922f9be0c322a434531a08c188c6f00079478c317fefc",
+      "note_count": 184,
+      "note_count_ratio": 1.0952380952380953,
+      "length_error": 0.0,
+      "onset_f1": 0.6666666666666666,
+      "melody_trigram_jaccard": 0.10869565217391304,
+      "chroma_cosine": 0.06320170547650615,
+      "max_polyphony": 9
+    },
+    "Beethoven": {
+      "output_sha256": "bfbfe652c1ee415411f94908eb4fed40c22dfe4c45af884c6c2dec924bf3043d",
+      "note_count": 152,
+      "note_count_ratio": 0.9047619047619048,
+      "length_error": 0.0,
+      "onset_f1": 0.6728971962616822,
+      "melody_trigram_jaccard": 0.1348314606741573,
+      "chroma_cosine": 0.05372044321662701,
+      "max_polyphony": 7
+    },
+    "Chopin": {
+      "output_sha256": "5abb15ac442846d054549dc94c187060e9000e5d1106a892b8b456c5a7e62dd8",
+      "note_count": 152,
+      "note_count_ratio": 0.9047619047619048,
+      "length_error": 0.0,
+      "onset_f1": 0.6666666666666666,
+      "melody_trigram_jaccard": 0.10869565217391304,
+      "chroma_cosine": 0.16599541380555582,
+      "max_polyphony": 7
+    }
+  },
+  "interpretation": "Qualitative legacy example; exact E3 configurations and style-objective reports are unavailable."
+}

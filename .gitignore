@@ -38,6 +38,7 @@ htmlcov/
 
 # --- Dane wygenerowane (audio renderowane przez FluidSynth) ---
 *.wav
+!examples/**/*.wav
 
 # --- System plików ---
 .DS_Store
