@@ -1,12 +1,17 @@
 from __future__ import annotations
 
 import argparse
+import sys
 
 from .experiment import audit_e4, evaluate_e4, load_e4_config, prepare_e4, report_e4, smoke_e4, test_e4, train_e4
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(prog="python -m musicians_style.e4")
+    argv = list(sys.argv[1:] if argv is None else argv)
+    if argv and argv[0] in {"infer", "styles"}:
+        from .inference_cli import main as inference_main
+        return inference_main(argv)
+    parser = argparse.ArgumentParser(prog="python -m musicians_style.e4", epilog="Nowy MIDI: infer --help; dostępne style: styles")
     parser.add_argument("--config", required=True)
     parser.add_argument("--stage", required=True, choices=("audit", "prepare", "smoke", "train", "evaluate", "test", "report"))
     args = parser.parse_args(argv)

@@ -481,6 +481,7 @@ def _infer_piece(
     target: int,
     device: torch.device,
     thresholds: Mapping[str, Any] | None = None,
+    *, progress=None,
 ) -> tuple[Any, dict[str, int]]:
     onset_threshold, frame_threshold = _threshold_values(thresholds)
     decoded: list[Segment] = []
@@ -502,6 +503,8 @@ def _infer_piece(
                 binary, _, active = _clean_binary_segment(segment.data, active)
                 fallback += 1
             decoded.append(Segment(segment.index, segment.start_bar, segment.bars, binary, segment.mask.copy()))
+            if progress is not None:
+                progress({"segment": len(decoded), "segments": len(piece.segment_map.segments)})
     output = stitch_segments(piece.segment_map, decoded)
     output_end = max((note.tick + note.duration_ticks for note in output.notes), default=0)
     if output_end != piece.segment_map.end_tick:

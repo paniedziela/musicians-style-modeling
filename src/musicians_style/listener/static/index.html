@@ -19,6 +19,21 @@
   <section class="workspace">
     <div class="intro"><span class="eyebrow">ODSŁUCH EKSPERYMENTÓW</span><h2>Posłuchaj różnicy.</h2><p class="muted">Wybierz dwa pliki i przełączaj je w tym samym miejscu utworu.</p></div>
     <div id="status" role="status" aria-live="polite">Wybierz MIDI z biblioteki albo dodaj własny plik.</div>
+    <section class="inference-panel" aria-label="Transformacja MIDI">
+      <h3>Przekształć plik A</h3>
+      <p class="muted">Dodaj własny MIDI i załaduj go do A. E3 może transponować melodię. E4.6 jest eksperymentalne i nie przeszło walidacji jakości.</p>
+      <label>Metoda <select id="inferMethod" aria-label="Metoda transformacji"></select></label>
+      <label>Styl <select id="inferTarget" aria-label="Styl transformacji"></select></label>
+      <label>Zdarzenia MIDI <select id="inferPolicy"><option value="preserve">Zachowaj kontrolery (w tym sustain CC64) i pitch bend</option><option value="score-only">Tylko partytura — usuń zdarzenia wykonawcze</option><option value="strict">Ścisły — odrzuć zdarzenia wykonawcze</option></select></label>
+      <p class="muted">Metryki liczone są z nut, bez wpływu kontrolerów. Tryb „tylko partytura” usuwa także SysEx i aftertouch; nie zamienia działania sustainu (CC64) na długości nut.</p>
+      <label>Generacje <input id="inferGenerations" type="number" min="0" max="200" value="60"></label>
+      <label>Populacja <input id="inferPopulation" type="number" min="2" max="128" value="32"></label>
+      <label>Seed <input id="inferSeed" type="number" min="0" max="4294967295" value="1729"></label>
+      <button id="inferStart" disabled>Uruchom: A → B</button>
+      <p id="inferStatus" role="status" aria-live="polite">Sprawdzanie profili…</p>
+      <a id="inferDownload" hidden download="output.mid">Pobierz wynik MIDI ↓</a>
+      <details><summary>Raport transformacji i ograniczenia</summary><pre id="inferReport"></pre></details>
+    </section>
     <div class="slots">
       <article class="slot active" id="slotA"><button class="slot-toggle" data-slot="A" aria-pressed="true">A <span>Pierwszy plik</span></button><h3 id="nameA">Wybierz utwór</h3><p id="metaA" class="muted">Kliknij A przy pliku w bibliotece.</p><p id="pathA" class="file-path"></p><div class="slot-links"><button id="originalA" hidden>Załaduj oryginał do B</button><a id="downloadA" hidden download>Pobierz MIDI ↓</a></div></article>
       <article class="slot" id="slotB"><button class="slot-toggle" data-slot="B" aria-pressed="false">B <span>Plik do porównania</span></button><h3 id="nameB">Wybierz utwór</h3><p id="metaB" class="muted">Kliknij B przy pliku w bibliotece.</p><p id="pathB" class="file-path"></p><div class="slot-links"><button id="originalB" hidden>Załaduj oryginał do A</button><a id="downloadB" hidden download>Pobierz MIDI ↓</a></div></article>

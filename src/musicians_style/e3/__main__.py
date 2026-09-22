@@ -6,11 +6,10 @@ import argparse
 import sys
 from pathlib import Path
 
-from .experiment import E3Experiment, load_e3_config
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="python -m musicians_style.e3")
+    parser = argparse.ArgumentParser(prog="python -m musicians_style.e3", epilog="Inferencja: infer --help; profile: styles / prepare-profiles --help")
     parser.add_argument("--config", required=True)
     parser.add_argument("--stage", required=True, choices=("prepare", "pilot", "run", "report", "all"))
     parser.add_argument("--run-dir", help="Override output.run_dir for this invocation.")
@@ -20,6 +19,11 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    argv = list(sys.argv[1:] if argv is None else argv)
+    if argv and argv[0] in {"infer", "styles", "prepare-profiles"}:
+        from .inference_cli import main as inference_main
+        return inference_main(argv)
+    from .experiment import E3Experiment, load_e3_config
     args = build_parser().parse_args(argv)
     try:
         experiment = E3Experiment(load_e3_config(args.config), run_dir=args.run_dir, workers=args.workers)

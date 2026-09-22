@@ -26,13 +26,17 @@ def read_json(path: Path) -> dict:
 
 
 class Library:
-    def __init__(self, root: Path, soundfont: Path, cache: Path):
+    def __init__(self, root: Path, soundfont: Path, cache: Path, *, profiles=None, inference_workspace=None, e4_checkpoint=None):
         self.root = root.resolve()
         self.soundfont = soundfont.resolve()
         self.cache = cache.resolve()
         self.cache.mkdir(parents=True, exist_ok=True)
         self.lock = threading.Lock()
         self.uploads: dict[str, tuple[Path, str]] = {}
+        from .inference import InferenceJobs
+        self.inference = InferenceJobs(self, profiles or self.root / "inference_workspace/profiles",
+                                       inference_workspace or self.cache / "inference",
+                                       e4_checkpoint or self.root / "experiments/e4_asap_v3/best.pt")
 
     def resolve(self, file_id: str) -> Path:
         if file_id.startswith("upload:"):
@@ -198,7 +202,13 @@ def make_handler(library: Library):
             url = urlsplit(self.path)
             file_id = parse_qs(url.query).get("id", [""])[0]
             try:
-                if url.path == "/api/library":
+                if url.path == "/api/inference/styles":
+                    self.json({"styles": library.inference.styles(), "method": "E3"})
+                elif url.path == "/api/inference/methods":
+                    self.json(library.inference.methods())
+                elif url.path == "/api/inference/status":
+                    self.json(library.inference.status(file_id))
+                elif url.path == "/api/library":
                     self.json({"files": library.catalog(), "root": str(library.root),
                                "soundfont": library.soundfont.is_file()})
                 elif url.path == "/api/midi":
@@ -242,6 +252,25 @@ def make_handler(library: Library):
                 self.json({"error": "Błąd odczytu lub syntezy pliku MIDI."}, 500)
 
         def do_POST(self):
+            if urlsplit(self.path).path == "/api/inference":
+                if self.headers.get("Content-Type", "").split(";")[0] != "application/json":
+                    self.json({"error": "Wymagany application/json."}, 415)
+                    return
+                origin = self.headers.get("Origin")
+                if origin and origin != "http://" + self.headers.get("Host", ""):
+                    self.json({"error": "Niedozwolone pochodzenie żądania."}, 403)
+                    return
+                try:
+                    length = int(self.headers.get("Content-Length", "0"))
+                    if not 0 < length <= 4096:
+                        raise ValueError("Niepoprawny rozmiar żądania.")
+                    value = json.loads(self.rfile.read(length))
+                    if not isinstance(value, dict):
+                        raise ValueError("Wymagany obiekt JSON.")
+                    self.json(library.inference.start(value), 202)
+                except (ValueError, OSError) as exc:
+                    self.json({"error": str(exc)}, 400)
+                return
             # Uploads are accepted only from this application, not cross-origin forms.
             if urlsplit(self.path).path != "/api/upload":
                 self.json({"error": "Nie znaleziono strony."}, 404)
@@ -269,10 +298,14 @@ def main():
     parser.add_argument("--soundfont", type=Path, default=Path("soundfonts/FluidR3_GM.sf2"))
     parser.add_argument("--cache", type=Path, default=Path("experiments/.midi-listener"))
     parser.add_argument("--port", type=int, default=8765)
+    parser.add_argument("--profiles-dir", type=Path, default=Path("inference_workspace/profiles"))
+    parser.add_argument("--inference-workspace", type=Path, default=Path("inference_workspace/web"))
+    parser.add_argument("--e4-checkpoint", type=Path, default=Path("experiments/e4_asap_v3/best.pt"))
     args = parser.parse_args()
     if not args.root.is_dir():
         parser.error("Katalog --root nie istnieje.")
-    library = Library(args.root, args.soundfont, args.cache)
+    library = Library(args.root, args.soundfont, args.cache, profiles=args.profiles_dir,
+                      inference_workspace=args.inference_workspace, e4_checkpoint=args.e4_checkpoint)
     server = ThreadingHTTPServer(("127.0.0.1", args.port), make_handler(library))
     print(f"Odsłuch MIDI: http://127.0.0.1:{server.server_port} (Ctrl+C kończy pracę)", flush=True)
     try:

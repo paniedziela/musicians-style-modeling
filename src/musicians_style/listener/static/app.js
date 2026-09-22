@@ -278,3 +278,73 @@ document.addEventListener("keydown", event => {
 });
 new ResizeObserver(drawBackground).observe($("roll"));
 drawBackground(); updateControls(); frame(); refresh();
+
+let inferenceMethods = [];
+function selectInferenceMethod() {
+  const method = inferenceMethods.find(item => item.id === $('inferMethod').value);
+  const previous = $('inferTarget').value;
+  $('inferTarget').replaceChildren();
+  for (const name of method?.styles || []) $('inferTarget').add(new Option(name, name));
+  if (method?.styles.includes(previous)) $('inferTarget').value = previous;
+  for (const id of ['inferGenerations', 'inferPopulation', 'inferSeed']) $(id).closest('label').hidden = method?.id !== 'e3';
+  $('inferStart').disabled = !method?.styles.length;
+  $('inferStatus').textContent = method?.id === 'e4' ? 'E4.6: eksperymentalne (NO-GO), siatka 16 kroków/takt. Może zmienić melodię; brak gwarancji transferu stylu.' : 'E3: domyślnie 60 generacji / 32 osobniki. Szybkie demo: 3 / 8.';
+}
+$('inferMethod').onchange = selectInferenceMethod;
+async function initInference() {
+  try {
+    const data = await (await request('/api/inference/methods')).json();
+    inferenceMethods = data.methods;
+    for (const method of data.methods) $('inferMethod').add(new Option(method.label, method.id));
+    selectInferenceMethod();
+    if (Object.keys(data.unavailable).length) $('inferStatus').textContent += ' Niedostępne: ' + Object.entries(data.unavailable).map(([name, error]) => name + ': ' + error).join('; ');
+    if (!data.methods.some(method => method.styles.length)) $('inferStatus').textContent = 'Brak dostępnych profili/modeli. Sprawdź katalog profili i checkpoint E4.';
+    const pending = sessionStorage.getItem('e3-job');
+    if (pending) await watchInference(pending);
+  } catch (error) { $('inferStatus').textContent = error.message; }
+}
+async function watchInference(id) {
+  $('inferStart').disabled = true;
+  $('inferMethod').disabled = true;
+  try {
+    while (true) {
+      const job = await (await request('/api/inference/status?id=' + encodeURIComponent(id))).json();
+      if (job.state === 'failed') throw new Error(job.error);
+      if (job.state === 'completed') {
+        sessionStorage.removeItem('e3-job');
+        $('inferReport').textContent = JSON.stringify(job.report, null, 2);
+        const report = job.report;
+        let summary = report.status === 'unchanged' ? 'Nuty niezmienione. ' : report.status === 'normalized_only' ? 'Tylko normalizacja zdarzeń; nuty niezmienione. ' : 'Zapisano zmieniony MIDI. ';
+        if (report.method === 'E3') summary += 'Zysk celu E3: ' + report.style_gain.toFixed(5) + '; transpozycja: ' + report.transpose_semitones + ' półtonów.';
+        else summary += 'E4.6 eksperymentalne (NO-GO). ' + (report.change_origin === 'representation_only' ? 'Zmiana wynika tylko z siatki reprezentacji.' : 'Sprawdź raport i odsłuch; zapis nie potwierdza jakości transferu.');
+        const warningCount = (report.warnings || []).length;
+        $('inferStatus').textContent = summary + (warningCount ? ` Ostrzeżenia: ${warningCount} — szczegóły w raporcie poniżej.` : '');
+        $('inferDownload').href = '/api/download?id=' + encodeURIComponent(job.output_id);
+        $('inferDownload').hidden = false;
+        await load('A', { id: job.input_id, name: 'Oryginał inferencji' });
+        await load('B', { id: job.output_id, name: 'Wynik ' + job.report.method + ' · ' + job.report.target_composer, original: job.input_id });
+        break;
+      }
+      $('inferStatus').textContent = (job.method === 'e4' ? 'E4.6 pracuje — segment ' + (job.segment ?? 0) + '/' + (job.segments ?? '?') : 'E3 pracuje — generacja ' + (job.generation ?? 'przygotowanie')) + '. Możesz korzystać z odsłuchu; nie zamykaj serwera.';
+      await new Promise(resolve => setTimeout(resolve, 700));
+    }
+  } catch (error) {
+    $('inferStatus').textContent = 'Błąd: ' + error.message;
+    sessionStorage.removeItem('e3-job');
+  } finally { $('inferStart').disabled = !$('inferTarget').options.length; $('inferMethod').disabled = false; }
+}
+$('inferStart').onclick = async () => {
+  if (!slots.A.file) { $('inferStatus').textContent = 'Najpierw dodaj MIDI i załaduj go do A.'; return; }
+  $('inferStart').disabled = true;
+  $('inferDownload').hidden = true;
+  $('inferReport').textContent = '';
+  $('inferStatus').textContent = 'Walidacja wejścia…';
+  try {
+    const payload = { input_id: slots.A.file.id, method: $('inferMethod').value, midi_policy: $('inferPolicy').value, target: $('inferTarget').value };
+    if (payload.method === 'e3') Object.assign(payload, { seed: Number($('inferSeed').value), generations: Number($('inferGenerations').value), population_size: Number($('inferPopulation').value) });
+    const job = await (await request('/api/inference', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })).json();
+    sessionStorage.setItem('e3-job', job.id);
+    await watchInference(job.id);
+  } catch (error) { $('inferStatus').textContent = 'Błąd: ' + error.message; $('inferStart').disabled = false; }
+};
+initInference();
