@@ -45,6 +45,8 @@ from musicians_style.midi.types import InternalRepr
 from musicians_style.training.dataset import MultiArtistManifest
 from musicians_style.training.trainer import GANTrainer
 
+pytestmark = pytest.mark.regression
+
 _TICKS_PER_BEAT = 480
 
 # Drobna geometria pianorolla - spójna między treningiem a inferencją.

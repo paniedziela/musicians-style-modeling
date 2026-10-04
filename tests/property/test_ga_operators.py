@@ -42,7 +42,8 @@ import math
 
 import numpy as np
 import pytest
-from hypothesis import given, settings
+from .profiles import property_settings
+from hypothesis import given
 from hypothesis import strategies as st
 
 from musicians_style.config import GAConfig
@@ -106,7 +107,7 @@ def _achievable_target(x_input: InternalRepr) -> AggregatedFeatures:
 # Poziom operatora: krzyżowanie zachowuje liczność (2 rodziców → 2 potomków)
 # --------------------------------------------------------------------------- #
 @pytest.mark.property
-@settings(max_examples=200, deadline=None)
+@property_settings(max_examples=200, deadline=None)
 @given(
     p1=genome_strategy(),
     p2=genome_strategy(),
@@ -131,7 +132,7 @@ def test_crossover_operators_return_two_finite_children(
 
 
 @pytest.mark.property
-@settings(max_examples=200, deadline=None)
+@property_settings(max_examples=200, deadline=None)
 @given(genome=genome_strategy(), seed=st.integers(min_value=0, max_value=2**32 - 1))
 def test_gaussian_mutate_returns_finite_genome(genome: Genome, seed: int) -> None:
     """Mutacja gaussowska zwraca pojedynczy, skończony :class:`Genome` (Property 9)."""
@@ -150,7 +151,7 @@ def test_gaussian_mutate_returns_finite_genome(genome: Genome, seed: int) -> Non
 # Poziom operatora: selekcja turniejowa zwraca osobnika z populacji
 # --------------------------------------------------------------------------- #
 @pytest.mark.property
-@settings(max_examples=200, deadline=None)
+@property_settings(max_examples=200, deadline=None)
 @given(
     population=st.lists(genome_strategy(), min_size=2, max_size=20),
     seed=st.integers(min_value=0, max_value=2**32 - 1),
@@ -179,7 +180,7 @@ def test_tournament_select_returns_member_of_population(
 # Pełny cykl pokolenia (białoskrzynkowo): liczność N zachowana, geny w zakresie
 # --------------------------------------------------------------------------- #
 @pytest.mark.property
-@settings(max_examples=200, deadline=None)
+@property_settings(max_examples=200, deadline=None)
 @given(
     population_size=st.integers(min_value=2, max_value=20),
     seed=st.integers(min_value=0, max_value=2**32 - 1),
@@ -243,7 +244,7 @@ def test_next_generation_preserves_population_size_and_ranges(
 
 
 @pytest.mark.property
-@settings(max_examples=200, deadline=None)
+@property_settings(max_examples=200, deadline=None)
 @given(
     population_size=st.integers(min_value=2, max_value=12),
     seed=st.integers(min_value=0, max_value=2**32 - 1),

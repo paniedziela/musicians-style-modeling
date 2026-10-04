@@ -19,7 +19,8 @@ from __future__ import annotations
 
 import numpy as np
 import pytest
-from hypothesis import given, settings
+from .profiles import property_settings
+from hypothesis import given
 
 from musicians_style.features.extractor import FeatureExtractor
 from musicians_style.midi.types import InternalRepr
@@ -29,7 +30,7 @@ _EXTRACTOR = FeatureExtractor()
 
 
 @pytest.mark.property
-@settings(max_examples=200, deadline=None)
+@property_settings(max_examples=200, deadline=None)
 @given(repr_=midi_internal_repr())
 def test_extract_is_idempotent(repr_: InternalRepr) -> None:
     """``extract(r)`` jest bit-identyczne dla dwóch niezależnych wywołań."""

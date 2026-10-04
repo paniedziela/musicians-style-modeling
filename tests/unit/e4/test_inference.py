@@ -27,6 +27,7 @@ def checkpoint(tmp_path):
     return path
 
 
+@pytest.mark.regression
 def test_e4_roundtrip_progress_and_controls(checkpoint, tmp_path):
     source = tmp_path / "in.mid"
     with_controls(source)
@@ -62,6 +63,7 @@ def test_e4_rejects_multichannel(checkpoint, tmp_path):
         infer(source, "Bach", tmp_path / "out.mid", checkpoint=checkpoint)
 
 
+@pytest.mark.regression
 def test_e4_web_matches_service_and_missing_e3_does_not_block(checkpoint, tmp_path):
     source = tmp_path / "in.mid"
     with_controls(source)

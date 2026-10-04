@@ -28,7 +28,8 @@ i meta-zdarzenia nienaruszone, więc *Wektor_Cech* musi być **bit-identyczny**.
 from __future__ import annotations
 
 import pytest
-from hypothesis import given, settings
+from .profiles import property_settings
+from hypothesis import given
 
 from musicians_style.features.extractor import FeatureExtractor
 from musicians_style.ga import IDENTITY_GENOME, apply_transformation
@@ -38,7 +39,7 @@ from .strategies import midi_internal_repr
 
 
 @pytest.mark.property
-@settings(max_examples=200, deadline=None)
+@property_settings(max_examples=200, deadline=None)
 @given(repr_=midi_internal_repr())
 def test_identity_transformation_preserves_feature_vector(
     repr_: InternalRepr,

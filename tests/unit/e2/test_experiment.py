@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import pytest
 import json
 from dataclasses import asdict
 from pathlib import Path
@@ -20,6 +21,8 @@ from musicians_style.e2.experiment import (
 from musicians_style.ga.types import IDENTITY_GENOME
 from musicians_style.midi.types import InternalRepr, NoteEvent
 from musicians_style.config import GAConfig
+
+pytestmark = pytest.mark.regression
 
 
 def _repr_(scale: float = 1.0) -> InternalRepr:

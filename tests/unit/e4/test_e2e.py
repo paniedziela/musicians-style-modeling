@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import pytest
 from pathlib import Path
 
 import torch
@@ -11,6 +12,8 @@ from musicians_style.e4.segmentation import encode_piece
 from musicians_style.midi.parser import MidiParser
 from musicians_style.midi.printer import MidiPrettyPrinter
 from musicians_style.midi.types import InternalRepr, MetaEvent, NoteEvent
+
+pytestmark = pytest.mark.regression
 
 
 def test_checkpoint_to_full_midi_to_parse(tmp_path) -> None:

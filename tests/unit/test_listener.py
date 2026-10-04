@@ -111,6 +111,7 @@ def server(library):
     thread.join()
 
 
+@pytest.mark.regression
 def test_browser_routes_upload_and_byte_ranges(server, monkeypatch):
     monkeypatch.setattr(pretty_midi.PrettyMIDI, "fluidsynth", lambda self, **kw: np.zeros(100))
     with urllib.request.urlopen(server + "/") as response:
@@ -134,6 +135,7 @@ def test_browser_routes_upload_and_byte_ranges(server, monkeypatch):
     assert error.value.code == 416
 
 
+@pytest.mark.regression
 def test_bad_midi_returns_readable_api_error(server, library):
     (library.root / "bad.mid").write_bytes(b"not MIDI")
     with pytest.raises(urllib.error.HTTPError) as error:

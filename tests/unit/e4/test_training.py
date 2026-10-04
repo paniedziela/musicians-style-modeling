@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pytest
+
 import torch
 
 from musicians_style.e4.model import ConditionalGenerator, PatchDiscriminator
@@ -51,6 +53,7 @@ def test_positive_weights_are_train_derived_and_capped() -> None:
     assert torch.equal(estimate_positive_weights(TinyDataset(), maximum=4), torch.tensor([4.0, 1.0]))
 
 
+@pytest.mark.regression
 def test_gan_step_has_valid_shapes_distinct_targets_finite_losses_and_gradients() -> None:
     torch.manual_seed(1729)
     generator = ConditionalGenerator()

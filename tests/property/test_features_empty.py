@@ -15,7 +15,8 @@ przy tym żadnego wyjątku (Wymagania 2.7, 11.8).
 from __future__ import annotations
 
 import pytest
-from hypothesis import given, settings
+from .profiles import property_settings
+from hypothesis import given
 
 from musicians_style.features.constants import NEUTRAL_FEATURE_VECTOR
 from musicians_style.features.extractor import FeatureExtractor
@@ -26,7 +27,7 @@ _EXTRACTOR = FeatureExtractor()
 
 
 @pytest.mark.property
-@settings(max_examples=100, deadline=None)
+@property_settings(max_examples=100, deadline=None)
 @given(repr_=midi_internal_repr(max_notes=0))
 def test_empty_repr_returns_neutral_vector(repr_: InternalRepr) -> None:
     """Pusty plik → :data:`NEUTRAL_FEATURE_VECTOR` bez wyjątku (Property 4)."""

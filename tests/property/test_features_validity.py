@@ -23,7 +23,8 @@ Dla dowolnej poprawnej *Reprezentacji_Wewnętrznej* ``r`` *Wektor_Cech*
 from __future__ import annotations
 
 import pytest
-from hypothesis import given, settings
+from .profiles import property_settings
+from hypothesis import given
 
 from musicians_style.features.extractor import FeatureExtractor
 from musicians_style.features.types import FEATURE_VECTOR_LENGTH
@@ -34,7 +35,7 @@ _EXTRACTOR = FeatureExtractor()
 
 
 @pytest.mark.property
-@settings(max_examples=200, deadline=None)
+@property_settings(max_examples=200, deadline=None)
 @given(repr_=midi_internal_repr())
 def test_feature_vector_is_valid(repr_: InternalRepr) -> None:
     """*Wektor_Cech* spełnia wszystkie niezmienniki walidności (Property 3)."""

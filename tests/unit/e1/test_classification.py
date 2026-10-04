@@ -14,6 +14,8 @@ from musicians_style.e1.classification import (
 from musicians_style.e1.features import build_legacy_feature_cache
 from musicians_style.e1.splits import build_e1_splits
 
+pytestmark = pytest.mark.regression
+
 
 def _inputs() -> tuple[dict, dict]:
     samples = []

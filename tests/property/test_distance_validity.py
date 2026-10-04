@@ -34,7 +34,8 @@ import math
 
 import numpy as np
 import pytest
-from hypothesis import given, settings
+from .profiles import property_settings
+from hypothesis import given
 
 from musicians_style.evaluation.distance import euclidean, mahalanobis
 from musicians_style.features.types import FEATURE_VECTOR_LENGTH, FeatureVector
@@ -43,7 +44,7 @@ from .strategies import feature_vector_strategy, psd_covariance
 
 
 @pytest.mark.property
-@settings(max_examples=200, deadline=None)
+@property_settings(max_examples=200, deadline=None)
 @given(f1=feature_vector_strategy(), f2=feature_vector_strategy())
 def test_euclidean_distance_is_valid(f1: FeatureVector, f2: FeatureVector) -> None:
     """Odległość euklidesowa jest skończona, nieujemna i deterministyczna (Property 10).
@@ -77,7 +78,7 @@ def test_euclidean_distance_is_valid(f1: FeatureVector, f2: FeatureVector) -> No
 
 
 @pytest.mark.property
-@settings(max_examples=200, deadline=None)
+@property_settings(max_examples=200, deadline=None)
 @given(
     f1=feature_vector_strategy(),
     f2=feature_vector_strategy(),

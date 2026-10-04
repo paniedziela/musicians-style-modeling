@@ -26,7 +26,8 @@ zachodzić bez dodatkowych założeń.
 from __future__ import annotations
 
 import pytest
-from hypothesis import given, settings
+from .profiles import property_settings
+from hypothesis import given
 
 from musicians_style.midi.parser import MidiParser
 from musicians_style.midi.printer import MidiPrettyPrinter
@@ -58,7 +59,7 @@ def _sorted_note_signatures(repr_: InternalRepr) -> list[tuple[int, int, int, in
 
 
 @pytest.mark.property
-@settings(max_examples=200, deadline=None)
+@property_settings(max_examples=200, deadline=None)
 @given(repr_=midi_internal_repr())
 def test_parse_write_roundtrip_preserves_notes(repr_: InternalRepr) -> None:
     """``parse(write(r))`` zachowuje multizbiór zdarzeń nutowych (Property 1).

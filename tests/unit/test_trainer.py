@@ -37,6 +37,8 @@ from musicians_style.midi.pianoroll import Pianoroll
 from musicians_style.training.dataset import MultiArtistManifest
 from musicians_style.training.trainer import MODEL_VERSION, GANTrainer
 
+pytestmark = pytest.mark.regression
+
 _TICKS_PER_BEAT = 480
 
 # Geometria drobnego pianorolla testowego: małe T i P dla szybkości.

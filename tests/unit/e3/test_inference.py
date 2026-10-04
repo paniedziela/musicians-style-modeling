@@ -135,6 +135,7 @@ def test_training_input_rejected(inputs, tmp_path):
         infer(source, "Beethoven", tmp_path / "out.mid", profiles_dir=directory)
 
 
+@pytest.mark.regression
 def test_web_http_uses_same_service_and_download(inputs, tmp_path):
     import threading
     import time

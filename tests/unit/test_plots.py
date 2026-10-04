@@ -30,6 +30,8 @@ from musicians_style.features.types import (
     FeatureVector,
 )
 
+pytestmark = pytest.mark.regression
+
 
 def _feature_vector(seed: int, tempo: float = 120.0) -> FeatureVector:
     rng = np.random.default_rng(seed)

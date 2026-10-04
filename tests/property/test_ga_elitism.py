@@ -32,7 +32,8 @@ from __future__ import annotations
 
 import numpy as np
 import pytest
-from hypothesis import given, settings
+from .profiles import property_settings
+from hypothesis import given
 from hypothesis import strategies as st
 
 from musicians_style.config import GAConfig
@@ -76,7 +77,7 @@ def _achievable_target(
 
 
 @pytest.mark.property
-@settings(max_examples=50, deadline=None)
+@property_settings(max_examples=50, deadline=None)
 @given(
     seed=st.integers(min_value=0, max_value=2**32 - 1),
     target_genome=genome_strategy(),

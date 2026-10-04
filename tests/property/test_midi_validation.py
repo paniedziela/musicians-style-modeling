@@ -26,7 +26,8 @@ SMF - aby zweryfikować odporność warstwy parsera.
 from __future__ import annotations
 
 import pytest
-from hypothesis import given, settings
+from .profiles import property_settings
+from hypothesis import given
 
 from musicians_style.errors import MidiValidationError
 from musicians_style.midi.parser import MidiParser
@@ -35,7 +36,7 @@ from .strategies import malformed_midi_bytes
 
 
 @pytest.mark.property
-@settings(max_examples=300, deadline=None)
+@property_settings(max_examples=300, deadline=None)
 @given(data=malformed_midi_bytes())
 def test_validate_never_raises_non_domain_exception(data: bytes) -> None:
     """``MidiParser.validate`` zwraca sukces albo ``MidiValidationError`` (Property 13).
@@ -60,7 +61,7 @@ def test_validate_never_raises_non_domain_exception(data: bytes) -> None:
 
 
 @pytest.mark.property
-@settings(max_examples=300, deadline=None)
+@property_settings(max_examples=300, deadline=None)
 @given(data=malformed_midi_bytes())
 def test_parse_bytes_raises_only_domain_exception(data: bytes) -> None:
     """``MidiParser.parse_bytes`` zgłasza wyłącznie wyjątki domenowe (Property 13).

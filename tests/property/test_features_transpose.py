@@ -21,7 +21,8 @@ from __future__ import annotations
 
 import numpy as np
 import pytest
-from hypothesis import assume, given, settings
+from .profiles import property_settings
+from hypothesis import assume, given
 from hypothesis import strategies as st
 
 from musicians_style.features.extractor import FeatureExtractor
@@ -34,7 +35,7 @@ _EXTRACTOR = FeatureExtractor()
 
 
 @pytest.mark.property
-@settings(max_examples=200, deadline=None)
+@property_settings(max_examples=200, deadline=None)
 @given(
     repr_=midi_internal_repr(),
     k=st.integers(min_value=-12, max_value=12),

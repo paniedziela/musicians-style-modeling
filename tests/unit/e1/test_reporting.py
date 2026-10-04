@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import pytest
 import json
 
 from musicians_style.e1.reporting import write_e1_closure_report
+
+pytestmark = pytest.mark.regression
 
 
 def _write_json(path, payload) -> None:
