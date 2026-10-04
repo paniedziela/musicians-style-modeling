@@ -1,6 +1,14 @@
 # STATUS — Research V2 entry point
 
-Updated **2026-10-04** after the separately authorized **V2-03 content audit only**. V2-01 remains complete. **Stop for review after V2-03; local commits authorized, no push. V2-02, V2-04 and V2-05 were not started.** Research V2 is an experiment phase, with no parallel package namespace.
+Updated **2026-10-04** after the separately authorized **V2-02 feature feasibility only**. V2-01 and V2-03 remain complete. **Stop for review after V2-02; local commits authorized, no push. Full E1c, V2-04 and V2-05 were not started.** Research V2 is an experiment phase, with no parallel package namespace.
+
+## V2-02 completion
+
+The predeclared nine repeat-0 / outer-fold-0 training samples each have two recorded extraction attempts for custom93 and isolated musif 1.2.4: 18/18 successful results per backend, with exact repeated schemas/values/outcomes. custom93 wraps the frozen implementation and matches all 150 frozen cache vectors exactly. musif provides 203-329 nullable numerical descriptors per sample (405-column pilot union); sample-dependent vocabulary and missing NumericTempo prevent treating this as a ready classifier matrix. No imputation, fitting or E1c classification ran.
+
+See [V2_02_COMPLETION.md](research/V2_02_COMPLETION.md) for exact files, commands, environments, findings, limitations and commits. Definitive artifacts: `experiments/research_v2_02_2026-10-04/pilot_final`; dependencies are isolated under that task's `musif_env`, with a tracked full lock at `requirements/research-v2-02-musif.lock.txt`. The original `.venv` and frozen E1-E4 remain unchanged.
+
+The V2-03 review clarification was recorded before feature implementation: ordering of distinct simultaneous same-tick MIDI events remains diagnostic and alone is not a hard violation of melodic identity. Protected absolute pitch, onset and note-off / identifiable duration remain the primary hard requirements. Completed V2-03 scientific artifacts, code and completion record are unchanged; their strict-order statistics retain their historical meaning.
 
 ## V2-03 completion
 
@@ -32,7 +40,7 @@ Current entry points are this file, RESEARCH_CONTEXT, PAPER_IMPLEMENTATION_MATRI
 
 These statistics come from frozen reports/results and the preceding audit, not new feature extraction/training/content calculations in V2-01. E1b demonstrates corpus discrimination rather than a universal style definition. RF is a **separate held-out evaluator** with shared-corpus/overlapping-feature dependence; event-profile measurements provide a more distinct perspective.
 
-Historical E3 allowed ±6-semitone global transposition (233/300 outputs nonzero). It remains the transposition-allowed baseline. New transfer experiments protect original absolute melody pitches, onsets, note-offs/durations and event order exactly. Structural/technical invariants and unchanged velocity are reported separately. Overlapping events need semantic auditing; do not retroactively interpret old E3 under the new exact-pitch policy.
+Historical E3 allowed ±6-semitone global transposition (233/300 outputs nonzero). It remains the transposition-allowed baseline. New transfer experiments protect original absolute melody pitches, onsets and note-offs / identifiable durations exactly. Distinct simultaneous same-tick ordering remains diagnostic under the review clarification above. Structural/technical invariants and unchanged velocity are reported separately. Overlapping events need semantic auditing; do not retroactively interpret old E3 under the new exact-pitch policy.
 
 ## Environment and local assets
 
@@ -40,7 +48,7 @@ Initial ambient import was `D:/Studia/inzynierka_dev/.venv/lib/site-packages/mus
 
 Editable setup succeeded using `.venv/Scripts/python.exe -m pip install --no-deps --no-build-isolation -e .`; no dependency upgrades. Ambient import now resolves to **`D:/Studia/inzynierka_dev/src/musicians_style/__init__.py`**, search location `D:/Studia/inzynierka_dev/src/musicians_style`, direct_url editable=true. The guard checks resolved source/search locations under this checkout's `src/musicians_style`, not merely under checkout. Another worktree/stale/missing/unresolved package fails. Checkout-first PYTHONPATH is a documented fallback, not an automatic repair performed by the audit.
 
-Environment: `.venv/Scripts/python.exe`, Python 3.10.20, Windows; recorded dependency versions include numpy 1.26.4, scipy 1.13.1, sklearn 1.5.1, torch 2.2.2+cu121, pytest 8.2.2 and Hypothesis 6.103.2. musif/music21/Partitura absent; Java available but jSymbolic JAR not found. Their installation/extraction belongs to separately reviewed V2-02.
+Environment: `.venv/Scripts/python.exe`, Python 3.10.20, Windows; recorded dependency versions include numpy 1.26.4, scipy 1.13.1, sklearn 1.5.1, torch 2.2.2+cu121, pytest 8.2.2 and Hypothesis 6.103.2. musif/music21/Partitura absent; Java available but jSymbolic JAR not found. V2-02 subsequently installed musif/music21 only in its isolated environment; this original project-environment snapshot remains valid.
 
 Audit roots default to this checkout's datasets / experiments / Literatura; explicit roots take precedence over MSM_DATA_ROOT / MSM_RESULTS_ROOT / MSM_LITERATURE_ROOT. All resolved paths and selection sources/config fingerprints are recorded. Legacy loaders and directory layout are unchanged. Physical ASAP inventory: 235 score MIDI/XML pairs; canonical 150 all have matching XML. Matched notation supports a separate score-aware E1m investigation.
 
@@ -65,12 +73,12 @@ Skipped deliberately: full-budget property execution, new feature/content extrac
 
 ## Next review and bounded backlog
 
-V2-01 and the separately authorized V2-03 are complete. Review V2-03 before further work. No feature feasibility, style-measure fitting or objective search was launched.
+V2-01, V2-03 and the separately authorized V2-02 are complete. Review V2-02 before further work. No full E1c classification, style-measure fitting or objective search was launched.
 
 1. V2-01 — roots/provenance/read-only evidence audit/test tiers: COMPLETE.
-2. V2-02 — nine-sample feature feasibility: planning only, MUST, MEDIUM.
-3. V2-03 — 600-output content audit plus 150 identities: COMPLETE, STOP FOR REVIEW.
+2. V2-02 — nine-sample feature feasibility: COMPLETE, STOP FOR REVIEW.
+3. V2-03 — 600-output content audit plus 150 identities: COMPLETE; artifacts preserved.
 4. V2-04 — E1d competing held-out style measurements: planning only, MUST, MEDIUM.
 5. V2-05 — objective pilot: provisional SHOULD, candidates/complexity/budget after E1d validity and another review.
 
-ROADMAP retains the bounded backlog. Introduce capability modules only when authorized tasks need them. Do not start V2-02, V2-04 or V2-05, and do not push.
+ROADMAP retains the bounded backlog. Introduce capability modules only when authorized tasks need them. Do not start full E1c, V2-04 or V2-05, and do not push.

@@ -1,10 +1,10 @@
 # ROADMAP — revised Research V2 implementation boundary
 
-Updated 2026-10-04. **V2-01 is complete; the separately authorized V2-03 content audit is complete. Stop for review after V2-03; local commits authorized, no push. Do not start V2-02, V2-04 or V2-05.** Research V2 is an experiment phase, not `musicians_style.v2` or a second implementation tree. The remaining backlog is unchanged; the V2-01 boundary below is historical.
+Updated 2026-10-04. **V2-01, V2-03 and the separately authorized V2-02 feature feasibility are complete. Stop for review after V2-02; local commits authorized, no push. Do not start full E1c, V2-04 or V2-05.** Research V2 is an experiment phase, not `musicians_style.v2` or a second implementation tree. The remaining backlog is unchanged; the V2-01 boundary below is historical.
 
 ## Scope and architecture
 
-Keep existing repository layout, E1–E4 source, configurations, feature contracts, schemas and artifacts stable. New modules may wrap/import frozen implementations; frozen experiments must not depend on them. Introduce reusable capabilities only for concrete needs, with small modules first. V2-01 adds root/provenance/audit support; `feature_backends`, `content_metrics` and `style_metrics` are future task locations, not foundation scaffolding. No tagging, worktree creation, branch changes or speculative search refactor is required for this pass.
+Keep existing repository layout, E1–E4 source, configurations, feature contracts, schemas and artifacts stable. New modules may wrap/import frozen implementations; frozen experiments must not depend on them. Introduce reusable capabilities only for concrete needs, with small modules first. V2-01 adds root/provenance/audit support; `content_metrics` was introduced for V2-03 and `feature_backends` only for V2-02; `style_metrics` remains a future task location, not foundation scaffolding. No tagging, worktree creation, branch changes or speculative search refactor is required for this pass.
 
 Root configuration order: explicit options, then MSM_DATA_ROOT / MSM_RESULTS_ROOT / MSM_LITERATURE_ROOT, then active checkout's datasets / experiments / Literatura. Resolve relative options against that checkout and record selection sources. Do not relocate/duplicate local assets or change legacy loaders. Separate source checkout from asset roots when using another worktree.
 
@@ -54,15 +54,17 @@ An explicitly selected property suite defaults to full unless dev is requested. 
 
 **Non-goals:** feature-backend/metric APIs, dataset extraction, content measurements, transfer/training, historical provenance repair. **STOP for review after V2-01.**
 
-### V2-02 — feature feasibility — MUST, planning only
+### V2-02 — feature feasibility — COMPLETE, stop for review
 
-**Reason:** test whether established MIR extractors can add useful reliable signal before E1c. **Read:** frozen composition_features/manifest/splits, E1b schema, matrix L0034/L0230, musif docs/version constraints. **Allowed later:** capability-oriented `src/musicians_style/feature_backends` adapters, pilot runner/config, synthetic tests and new artifacts; never frozen E1 code.
+**Reason:** test whether established MIR extractors can add useful reliable signal before E1c. **Read:** frozen composition_features/manifest/splits, E1b schema, matrix L0034/L0230, musif docs/version constraints. **Implemented:** capability-oriented `src/musicians_style/feature_backends` custom93/musif adapters, explicit feasibility runner, isolated dependency lock, synthetic tests and new artifacts; never frozen E1 code.
 
 Wrap custom93 without duplication. Select nine training samples: first three lexical work groups per composer in repeat 0 / outer fold 0 train, one lexical sample each; persist identities/hashes before extraction. Isolate musif dependencies. **Acceptance:** all nine samples have features or explicit failure records on both attempts (18 extraction attempts); compare complete pilot schemas, values or failure statuses for determinism. Record empty/nonfinite/missing values, sample mapping, versions and runtime; no hidden sample exclusion. Dataset-wide custom93/cache comparison produces an audit artifact. No E1c model fitting in this bounded pilot.
 
-**Artifacts:** pilot manifest, extractor schema/cache/failure records, determinism comparison and feasibility report. **Estimate:** MEDIUM; 2–3 passes; 18 pilot attempts plus explicit cache audit, no training. Requires V2-01 and isolated MIR dependencies. May run alongside V2-03 after separate review. Stop before full E1c or another backend.
+**Artifacts:** pilot manifest, extractor schema/cache/failure records, determinism comparison and feasibility report. **Estimate:** MEDIUM; 2–3 passes; 18 pilot attempts per backend plus explicit cache audit, no training. Requires V2-01 and isolated MIR dependencies. May run alongside V2-03 after separate review. Stop before full E1c or another backend.
 
-### V2-03 — content audit — COMPLETE, stop for review
+**Completion:** nine predeclared training samples; two attempts per backend (36 total), no dropped samples. Exact repeated results; all 150 custom93 cache vectors match. musif MIDI produces 203-329 numeric nullable features per sample, 405 in the descriptive union; missing tempo and variable vocabulary are limitations for subsequent model use. Exact evidence: [V2_02_COMPLETION.md](V2_02_COMPLETION.md), `experiments/research_v2_02_2026-10-04/pilot_final`. Run `.venv/Scripts/python.exe -B tools/feature_feasibility.py --output experiments/<fresh-pilot-directory> --musif-python experiments/research_v2_02_2026-10-04/musif_env/Scripts/python.exe`. No full E1c, another backend, V2-04 or V2-05 launch. **STOP for V2-02 review.**
+
+### V2-03 — content audit — COMPLETE, artifacts preserved
 
 **Reason:** quantify preservation independently from style before objective comparison. **Read:** frozen MIDI/event handling and E3 melody/transposition constraints; E2/E3 outputs; L0074/L0185/L0208. **Implemented:** concrete `src/musicians_style/content_metrics.py`, `content_audit.py`, thin `tools/content_audit.py`, focused synthetic tests and new artifacts. No reverse dependencies or frozen source/configuration/result/report changes.
 
@@ -70,7 +72,9 @@ Wrap custom93 without duplication. Select nine training samples: first three lex
 
 **Artifacts:** metric contract/version, per-output audit/ambiguity records and report. **Estimate:** MEDIUM; 2–3 passes; parsing/measurement of 600 outputs, no generation. Requires V2-01; may run alongside V2-02. Non-goals: optimizer changes, synthetic regeneration, objective selection.
 
-**Completion:** all 600 frozen outputs plus 150 original identity references audited explicitly. Final files, commands/results, findings, ambiguity limits and artifact locations: [V2_03_COMPLETION.md](V2_03_COMPLETION.md). Reproduce with `.venv/Scripts/python.exe -B tools/content_audit.py --output experiments/<fresh-content-audit-directory>`; roots and ambient import guard follow V2-01. The fast/property/regression tiers are unchanged. No V2-02 work ran alongside this audit. **STOP for review after V2-03.**
+**Completion:** all 600 frozen outputs plus 150 original identity references audited explicitly. Final files, commands/results, findings, ambiguity limits and artifact locations: [V2_03_COMPLETION.md](V2_03_COMPLETION.md). Reproduce with `.venv/Scripts/python.exe -B tools/content_audit.py --output experiments/<fresh-content-audit-directory>`; roots and ambient import guard follow V2-01. The fast/property/regression tiers are unchanged. No V2-02 work ran alongside this audit. **The V2-03 stop boundary preceded the separately authorized V2-02 task.**
+
+Review clarification (recorded before V2-02 implementation): distinct simultaneous same-tick order is diagnostic, not a hard melodic-identity violation on its own. Exact protected pitch, onset and note-off / identifiable duration remain primary. The completed V2-03 strict-order contract/statistics and artifacts above are retained unchanged.
 
 ### V2-04 — E1d style-measure comparison — MUST, planning only
 
@@ -84,7 +88,7 @@ Wrap custom93 without duplication. Select nine training samples: first three lex
 
 **Reason:** test eligible E1d objectives under exact protected melody and equal bounded compute. **Read:** completed E1d/eligibility and content contract, frozen E3 engine/feasibility, baseline artifacts. **Allowed later:** external adapter/runner/config and tests/artifacts. Prefer zero-transposition enforcement outside frozen search. No duplicated engine. E3 source changes require demonstrated adapter insufficiency, separate minimal-change review, unchanged old default and regression tests.
 
-**Acceptance:** after E1d and another review choose up to two eligible candidates; no fixed RMS67/Gaussian67/classifier93 pilot list. Require leakage-safe fit, finite/nondegenerate/deterministic scores and grouped held-out target-ranking clustered CI lower bound above chance (1/3). If none passes, NO-GO without transfer optimization. Predeclare source works, seeds, six directions, budget and exact-pitch/onset/note-off/order constraints; reject/log nonzero transposition. Report identity/frozen paired baselines, content/style separately, evaluator dependence and failures.
+**Acceptance:** after E1d and another review choose up to two eligible candidates; no fixed RMS67/Gaussian67/classifier93 pilot list. Require leakage-safe fit, finite/nondegenerate/deterministic scores and grouped held-out target-ranking clustered CI lower bound above chance (1/3). If none passes, NO-GO without transfer optimization. Predeclare source works, seeds, six directions, budget and exact-pitch/onset/note-off/identifiable-duration constraints, with distinct same-tick event ordering diagnostic; reject/log nonzero transposition. Report identity/frozen paired baselines, content/style separately, evaluator dependence and failures.
 
 **Artifacts:** reviewed candidate selection and protocol, measured pilot budget, new outputs/reports under new IDs. **Estimate:** complexity/passes finalized after E1d; six-direction cost measured before launch; requires V2-04 completion and review, cannot parallelize with candidate selection. Non-goals: automatic ablation, shared E3 refactor or neural tuning.
 

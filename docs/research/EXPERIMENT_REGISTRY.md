@@ -1,6 +1,6 @@
 # EXPERIMENT_REGISTRY — frozen evidence and proposed Research V2 experiments
 
-Updated 2026-10-04. Experiment identifiers describe scientific protocols; Research V2 does not create a parallel Python implementation tree. V2-01 and the separately authorized V2-03 content audit are complete. Stop for V2-03 review; V2-02/V2-04/V2-05 remain unstarted. No frozen evidence is rewritten or silently rerun under an existing schema.
+Updated 2026-10-04. Experiment identifiers describe scientific protocols; Research V2 does not create a parallel Python implementation tree. V2-01, V2-03 and the separately authorized V2-02 feature feasibility are complete. Stop for V2-02 review; full E1c/V2-04/V2-05 remain unstarted. No frozen evidence is rewritten or silently rerun under an existing schema.
 
 ## Frozen identities
 
@@ -14,7 +14,7 @@ Updated 2026-10-04. Experiment identifiers describe scientific protocols; Resear
 
 E2/E3 use repeat 0 paired directions/tasks. E3 mean Δp CI [0.02850, 0.04604]; E3−E2 CI [0.00134, 0.02240], p=0.0395. E3 has 185 positive, 67 zero and 48 negative movements; 45 identity fallbacks. E4.6 mean validation Δp=0.00340, three of six directions positive, melody median 0.91625, onset 0.8540; four validation criteria fail. Local absence of outer-test artifacts agrees with the closed-test policy but cannot prove data was never inspected.
 
-Historical E3's melody policy permits global ±6-semitone transposition. 233/300 outputs use nonzero transposition. Keep it as the transposition-allowed baseline. New transfer experiments require exact original protected melody pitches, onsets, note-offs and order. A later optional policy ablation requires a new identity/config; do not relabel old outputs.
+Historical E3's melody policy permits global ±6-semitone transposition. 233/300 outputs use nonzero transposition. Keep it as the transposition-allowed baseline. New transfer experiments require exact original protected melody pitches, onsets and note-offs / identifiable durations. The V2-03 review clarification makes distinct simultaneous same-tick order diagnostic, not a hard identity violation on its own; completed V2-03 artifacts remain unchanged. A later optional policy ablation requires a new identity/config; do not relabel old outputs.
 
 ## Historical provenance limitations
 
@@ -30,11 +30,17 @@ Infrastructure audit, not a new musical experiment. Separate `inventory` from ex
 
 V2-02 begins with nine predeclared training samples and two extraction attempts per sample, including deterministic failure records. Full E1c comes after feasibility review. If an extractor has incomplete coverage, report failures and a matched-subset custom93 comparison; do not compare differently composed populations as if matched. An external extractor need not outperform custom93 for a valid result. Artifacts: pilot manifest, versions/config/source hashes, schemas/cache, failures, fold predictions and report. Frozen outer folds have already been inspected historically; describe further exploration honestly rather than claiming a fresh untouched confirmatory test.
 
+## V2-02 — MIDI feature feasibility (complete; stop for review)
+
+Schema `v2-02.feasibility.1`; fixed nine training samples, two repetitions per backend, 36 records including explicit success/failure status. custom93 imports frozen E1b and exactly reproduces all 150 cache rows in the separate audit. Isolated musif 1.2.4 yields repeat-identical nullable numeric results for 9/9 samples: 203-329 features per row, a 405-feature pilot union, with NumericTempo missing throughout. Names/labels/descriptive MIDI metadata and identifiers are excluded from model features; part/sound/family headers and musical categories are also excluded by this bounded score-level numeric adapter. See [V2_02_COMPLETION.md](V2_02_COMPLETION.md), `experiments/research_v2_02_2026-10-04/pilot_final` and `requirements/research-v2-02-musif.lock.txt`.
+
+This establishes bounded extraction feasibility, not composer discrimination or model readiness. Sample-dependent vocabulary, missing tempo, constant pilot columns and music21 MIDI interpretation remain explicit limitations. No E1c fold predictions/training, MusicXML replacement, jSymbolic/Partitura backend, V2-04 or V2-05.
+
 ## E1m — matched MusicXML study (COULD, proposed separately)
 
 Compare MIDI and score-aware extraction on matched 150 identities/work groups with the same grouped protocol. musif/Partitura dependencies and notation-derived features are versioned separately. GO requires usable notation and bounded cost; missing XML and differences in coverage are explicit. No automatic launch during V2-01.
 
-## Content audit — V2-03 (complete; stop for review)
+## Content audit — V2-03 (complete; artifacts preserved)
 
 Audit the 600 frozen E2/E3 outputs without generation. Separate protected melody identity, structural/technical invariants, velocity invariance of the current transform, soft harmonic/structure preservation and transformable accompaniment. Compare semantic on/off masks as well as parsed notes for overlaps. Report historical E3 transposition explicitly; new policy is exact-pitch. Produce per-output diagnostics/hashes and direction/cluster summaries outside pytest. Synthetic identity, deliberate corruption, overlap and transposition cases belong in small tests.
 
