@@ -1,112 +1,70 @@
 # STATUS — Research V2 entry point
 
-> Draft generated from the current public `main` branch and the selected thesis literature.
-> Baseline repository: `paniedziela/musicians-style-modeling`
-> Inspected `main` commit: `594e70190708808516b93731c397d42e55b34371`
+Updated **2026-10-04** after authorized documentation + V2-01 implementation. **Stop for review: no commit/push, no V2-02 launch.** The earlier Plan Mode limitation is superseded; files have now changed. Research V2 is an experiment phase, with no parallel package namespace.
 
-## Purpose
+## Checkout and sources
 
-This file is the single operational entry point for the repository. It should answer what is finished, what is frozen, what is active, and which documents are authoritative.
+| Source | Verified state |
+|---|---|
+| Active checkout | `D:/Studia/inzynierka_dev`, branch main; HEAD `324052a9cd5e8269fe406885bb9b65d86856ccdb`, commit dated 2026-10-04 19:16:29 +02:00 |
+| GitHub main | `594e70190708808516b93731c397d42e55b34371`, dated 2026-09-22 12:27:55 UTC; rechecked read-only via GitHub connector on 2026-10-04 |
+| Difference before this pass | One local documentation commit adds six Research V2 navigation/prompt documents; research code matches remote baseline |
+| Current work | Uncommitted documentation, V2-01 audit modules/tool and test-tier support; exact change inventory in the local completion record |
+| Selected literature | All 13 local `Literatura/selected/L*.pdf` sources read in the preceding audit; matrix records versions, SHA256 and all 19 required fields |
+| ChatGPT project context | Named Inżynierka project context was unavailable; user instructions, local documents/results and connected repository are the available sources |
 
-## Current experimental state
+Current entry points are this file, RESEARCH_CONTEXT, PAPER_IMPLEMENTATION_MATRIX, EXPERIMENT_REGISTRY and ROADMAP. Historical audits/plans/results remain evidence; their stale statements about unfinished E3, all GAN work being pending, independent evaluator meaning or incomplete full-piece coverage are not current operational guidance. README now points here and describes actual setup/test tiers. Historical reports are unchanged.
 
-### E1 — composer-style discrimination
-**Status: CLOSED / GO**
+## Verified frozen evidence
 
-- leakage-safe grouped evaluation;
-- frozen 93-feature `composition_full` contract;
-- balanced accuracy approximately `0.864`;
-- useful as evidence that the representation contains composer-discriminative signal, not as proof of a universal definition of style.
+| Experiment | Status / findings |
+|---|---|
+| E1b | CLOSED / GO. 150 accepted samples, 87 work groups; Bach 59/30, Beethoven 57/28, Chopin 34/29. RF balanced accuracy 0.86424, clustered CI [0.83781, 0.89059], macro-F1 0.86956; retrained permutation p=0.01099. Frozen custom93 reproduces its cache in the preceding read-only audit. |
+| E2 | CLOSED / FROZEN BASELINE. 300 outputs, recorded hashes match. Mean Δp_target 0.02767, CI [0.01986, 0.03623]. Historical global GA damages temporal content; preserve it for paired comparison. |
+| E3 | CLOSED / GO WITH LIMITATIONS. 300 outputs, hashes match. Mean Δp_target 0.03771, CI [0.02850, 0.04604]; paired E3−E2 0.01004, CI [0.00134, 0.02240], p=0.0395. Objective/evaluator Pearson r=0.04395; 45 identity fallbacks. |
+| E4.5 / E4.6 | CLOSED / validation NO-GO. E4.6: 86 validation outputs available; best.pt matches validation/status SHA256 e165ded23e0202dd6798dbad6ff16f5ca33fce8c6c13428983412e1fdf0c0d5d. Four validation gates fail; no outer-test artifacts found. Absence does not prove data was never inspected. |
 
-### E2 — legacy global GA
-**Status: CLOSED / FROZEN BASELINE**
+These statistics come from frozen reports/results and the preceding audit, not new feature extraction/training/content calculations in V2-01. E1b demonstrates corpus discrimination rather than a universal style definition. RF is a **separate held-out evaluator** with shared-corpus/overlapping-feature dependence; event-profile measurements provide a more distinct perspective.
 
-Preserve it as a paired baseline. Do not improve it in place.
+Historical E3 allowed ±6-semitone global transposition (233/300 outputs nonzero). It remains the transposition-allowed baseline. New transfer experiments protect original absolute melody pitches, onsets, note-offs/durations and event order exactly. Structural/technical invariants and unchanged velocity are reported separately. Overlapping events need semantic auditing; do not retroactively interpret old E3 under the new exact-pitch policy.
 
-### E3 — constrained local optimization
-**Status: CLOSED / GO WITH LIMITATIONS**
+## Environment and local assets
 
-Reported:
-- mean `Δp_target = 0.0377`;
-- clustered 95% CI `[0.0285, 0.0460]`;
-- paired E3−E2 improvement `0.0100`, CI `[0.0013, 0.0224]`.
+Initial ambient import was `D:/Studia/inzynierka_dev/.venv/lib/site-packages/musicians_style/__init__.py`: inside the checkout but outside its source package. The thin audit entry point rejected it before research-module loading and wrote `experiments/research_v2_01_2026-10-04/ambient_import` diagnostics.
 
-Primary limitation:
-- Pearson correlation between E3's internal style objective and the independent `Δp_target` evaluator is only `0.044`.
+Editable setup succeeded using `.venv/Scripts/python.exe -m pip install --no-deps --no-build-isolation -e .`; no dependency upgrades. Ambient import now resolves to **`D:/Studia/inzynierka_dev/src/musicians_style/__init__.py`**, search location `D:/Studia/inzynierka_dev/src/musicians_style`, direct_url editable=true. The guard checks resolved source/search locations under this checkout's `src/musicians_style`, not merely under checkout. Another worktree/stale/missing/unresolved package fails. Checkout-first PYTHONPATH is a documented fallback, not an automatic repair performed by the audit.
 
-This is the main motivation for Research V2: compare alternative definitions of style and objectives before replacing the optimizer.
+Environment: `.venv/Scripts/python.exe`, Python 3.10.20, Windows; recorded dependency versions include numpy 1.26.4, scipy 1.13.1, sklearn 1.5.1, torch 2.2.2+cu121, pytest 8.2.2 and Hypothesis 6.103.2. musif/music21/Partitura absent; Java available but jSymbolic JAR not found. Their installation/extraction belongs to separately reviewed V2-02.
 
-### E4.6 — conditional GAN inspired by StarGAN
-**Status: CLOSED / NO-GO FOR THE CURRENT VARIANT**
+Audit roots default to this checkout's datasets / experiments / Literatura; explicit roots take precedence over MSM_DATA_ROOT / MSM_RESULTS_ROOT / MSM_LITERATURE_ROOT. All resolved paths and selection sources/config fingerprints are recorded. Legacy loaders and directory layout are unchanged. Physical ASAP inventory: 235 score MIDI/XML pairs; canonical 150 all have matching XML. Matched notation supports a separate score-aware E1m investigation.
 
-Validation failed the frozen gate; outer test remained closed. Preserve the result and do not continue an open-ended E4.7/E4.8 tuning sequence.
+## V2-01 verification
 
-## Research V2 goals
+All commands below used `.venv/Scripts/python.exe` from the active checkout. `-B` avoids bytecode files; `-p no:cacheprovider` avoids the inaccessible existing pytest cache.
 
-1. Compare symbolic MIR feature representations.
-2. Compare several defensible definitions of target style.
-3. Improve agreement between transformation objective and independent evaluation.
-4. Keep content preservation independent from style gain.
-5. Turn the selected literature into adaptations, metrics and baselines rather than 13 separate reimplementations.
-6. Make the repository easier to navigate.
+| Command suffix | Result |
+|---|---|
+| `-B -m pytest -q -p no:cacheprovider --durations=10` | Fast default: 452 passed, 64 deselected, 14 existing dependency warnings; 19.59 s |
+| `-B -m pytest -q -p no:cacheprovider -o addopts= tests/property --hypothesis-profile=dev --durations=5` | 17 passed, 13 existing warnings; 9.34 s |
+| `-B -m pytest -q -p no:cacheprovider -o addopts= tests/unit tests/integration --durations=10` | Broad unit/regression/integration: 527 passed, 14 existing warnings; 42.89 s |
+| `-B -m pytest -q -p no:cacheprovider tests/unit/test_asset_paths.py tests/unit/test_provenance.py tests/unit/test_research_audit.py tests/unit/test_property_profiles.py` | 23 V2-01 synthetic/subprocess/profile checks passed; initial focused run 3.51 s; final cleanup verification recorded in completion artifact |
+| `-B tools/research_audit.py --scope inventory --output experiments/research_v2_01_2026-10-04/inventory_final` | Passed; 1.72 s wall time |
+| `-B tools/research_audit.py --scope baseline --output experiments/research_v2_01_2026-10-04/baseline_final` | Passed; 9.85 s wall time; 24 passed / 2 unavailable historical-provenance checks / 0 failed |
 
-## Active workstreams
+Initial baseline (`baseline_before`, 7.06 s) and subsequent baseline fingerprints match for 1,004 evidence files, 34 frozen experiment source files, nine configurations and all 13 PDFs. The final review audit/report and completion record live in `experiments/research_v2_01_2026-10-04`; every audit uses a fresh child directory. Synthetic fixtures exercise root precedence/other checkout defaults, correct/stale/foreign/missing imports, unresolved source, missing assets/hash mismatches/conflicting snapshots/splits/checkpoint, output-dir rejection and no frozen-input mutation.
 
-- **V2-A — MIR features:** custom93, musif, jSymbolic, selected music21, combinations, optional MusicXML/Partitura.
-- **V2-B — style metrics/objectives:** classifier probability, Gaussian profiles, target-vs-counterexample, event profiles, StyleRank-like similarity, optional Markov/pattern model.
-- **V2-C — controlled transfer:** initially reuse E3 as the stable transformation harness.
-- **V2-D — neural comparison:** optional; only after the evaluation framework is stronger.
+Default `python -m pytest` is fast unit/smoke only. Registered property/integration/regression/slow tiers keep expensive workflows without deleting assertions. Original property budgets remain 50/100/200/300 under full; dev caps each at 20. Real 150-source/600-output audits are artifacts outside pytest. The prior 493-unit run took 50.46 s; default now meets the below-30-s development target here without a wall-clock assertion.
 
-## Authoritative documents
+Skipped deliberately: full-budget property execution, new feature/content extraction, training, output regeneration, outer E4 test and listening study. Profile budget retention is explicitly tested; full unit/integration/regression coverage ran. Historical provenance remains incomplete: E1 report/manifest commit references differ after metadata anonymization; E2 commit does not reconstruct a full environment; E3 lacks a complete recorded source/environment snapshot. Do not synthesize these missing facts.
 
-Read in this order:
+## Next review and bounded backlog
 
-1. `docs/STATUS.md`
-2. `docs/research/RESEARCH_CONTEXT.md`
-3. `docs/research/PAPER_IMPLEMENTATION_MATRIX.md`
-4. `docs/research/EXPERIMENT_REGISTRY.md`
-5. `docs/research/ROADMAP.md`
-6. frozen E1–E4 plans and `docs/results/*.md`
+V2-01 is complete after final verification. Review its diff, setup choice, tier organization and artifacts before further work. No deviations in scientific scope; the explicit editable environment change is recorded, and full properties were deferred as the revised verification plan permits.
 
-Older audits remain historical evidence, not the current source of truth.
+1. V2-01 — roots/provenance/read-only evidence audit/test tiers: this pass only, MUST, MEDIUM.
+2. V2-02 — nine-sample feature feasibility: planning only, MUST, MEDIUM.
+3. V2-03 — 600-output content audit: planning only, MUST, MEDIUM.
+4. V2-04 — E1d competing held-out style measurements: planning only, MUST, MEDIUM.
+5. V2-05 — objective pilot: provisional SHOULD, candidates/complexity/budget after E1d validity and another review.
 
-## Repository rules
-
-- Never overwrite completed experiment directories.
-- Never reinterpret an existing schema name after changing semantics.
-- Never alter E1b's 93-feature contract in place.
-- Do not use E4 outer test for tuning.
-- Any style profile/model must be train-only for the relevant fold.
-- New feature backends get new versioned identifiers.
-- Research variants belong in configs/experiment IDs, not permanent method branches.
-- Extract shared abstractions only when at least two real experiments need them.
-
-## Local assets
-
-Keep datasets, results and PDFs outside Git and share them between worktrees through:
-
-```text
-MSM_DATA_ROOT
-MSM_RESULTS_ROOT
-MSM_LITERATURE_ROOT
-```
-
-Suggested external layout:
-
-```text
-<external-root>/
-├── datasets/
-├── results/
-└── literature/
-    ├── selected/
-    └── old/
-```
-
-## Next decision gate
-
-Before a new neural model:
-1. merge the small Research V2 foundation;
-2. run MIR representation comparison;
-3. implement at least two independent style metrics/objectives;
-4. test whether objective improvement agrees with independent evaluation;
-5. only then decide whether a neural experiment adds unique evidence.
+ROADMAP gives exact files, acceptance tests, artifacts, agent passes, compute cost, blocking dependencies and parallelism. Introduce capability modules only when those tasks need them. Do not start V2-02–V2-05, commit or push in this pass.

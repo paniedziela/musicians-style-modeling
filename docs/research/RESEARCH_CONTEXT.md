@@ -1,197 +1,56 @@
-# RESEARCH_CONTEXT — symbolic composer-style modelling and controlled transfer
+# RESEARCH_CONTEXT — Research V2
 
-## Research problem
+Updated 2026-10-04. Research V2 is a research/experiment phase within the current implementation tree. E1–E4 are frozen evidence, not the final architecture. The authorized implementation boundary is documentation and V2-01; see ROADMAP.md for subsequent review gates.
 
-The project studies symbolic musical style modelling and controlled composer-style transformation.
+## Research question and evidence
 
-```text
-source symbolic piece
-        +
-target composer style learned from a corpus
-        ↓
-controlled transformation
-        ↓
-output that moves toward the target style
-while retaining explicitly protected source content
-```
+Transform a source symbolic score toward a corpus-defined target composer while preserving explicitly protected melody. Generation from scratch, expressive performance modelling and arbitrary-composer few-shot transfer are secondary.
 
-This is not primarily generation from scratch, one-shot imitation of a single target example, free-form continuation, or expressive performance-style transfer.
+The local audit finds 150 accepted score MIDIs / 87 work groups (Bach 59/30, Beethoven 57/28, Chopin 34/29); each has matching MusicXML. The physical ASAP folder has 235 score MIDI/XML pairs. The custom93 implementation reproduces its frozen feature cache in the preceding read-only audit; V2-01 checks its snapshot/hash consistency without extracting features again.
 
-## Working definition of style
+E1b RF balanced accuracy is 0.86424, clustered CI [0.83781, 0.89059], macro-F1 0.86956 and retrained permutation p=0.01099. This shows composer-discriminative signal within this corpus, not a universal definition of style. E2's mean target-probability movement is 0.02767; E3's is 0.03771, with paired E3−E2 improvement 0.01004. E3 objective/evaluator Pearson agreement is only 0.04395. These are reported experimental statistics, not new V2 computations. E4.6 fails its validation gate; keep it as a negative result rather than repeatedly tuning GAN variants.
 
-Style is treated operationally as a corpus-relative set of recurring symbolic characteristics.
+## Content contract
 
-Candidate dimensions:
-- pitch/register and pitch-class usage;
-- melodic intervals and contour;
-- rhythm and metrical placement;
-- harmony/chroma and transitions;
-- texture/polyphony/chord-size behavior;
-- repetition/pattern structure;
-- ornamentation and accompaniment behavior.
+Content and style are separate axes. Version each experiment's melody selector and constraints; a Skyline mask is an operational approximation, not a musicological ground truth.
 
-Research V2 should explicitly compare several definitions instead of assuming one representation captures “true style”.
+| Attribute | Policy | Interpretation |
+|---|---|---|
+| Protected melody pitch | PRESERVE exactly | Original absolute pitches; no global transposition in new transfer experiments |
+| Protected onset, duration/note-off and event order | PRESERVE exactly | Melodic identity; preserve selected on/off events and their order |
+| Meter, essential metadata, MIDI format/resolution and channels where required | PRESERVE | Structural/technical invariants, distinct from melodic identity |
+| Velocity when the transformation leaves it unchanged | Report separately | Current transformation invariant; score-MIDI velocity is not automatically fundamental melodic content |
+| Harmonic/chroma relation, phrase/section structure | SOFTLY_PRESERVE | Named measurements and predeclared tolerances; no invented aggregate content scalar |
+| Accompaniment pitch, timing, duration, voicing/texture and bounded density | STYLE_TRANSFORMABLE | Subject to protected events, extent and validity budgets |
 
-## Working definition of content
+Historical E3 allowed global transposition up to ±6 semitones while preserving its selected melody relative to that transposition. Preserve that baseline and its reported interpretation. The future exact-pitch V2 policy does not retroactively make E3 a failed exact-pitch experiment. An optional transposition-policy ablation may be proposed later.
 
-Content preservation remains independent from style similarity.
+Overlapping same-pitch MIDI events can make parsed note tuples ambiguous. V2-03 must compare protected event identity/order and explain pairing ambiguity, rather than asserting pitch/onset/duration equality from one arbitrary pairing. Literal tuple comparison flagged 17 historical cases where semantic on/off protection was retained; two outputs added higher notes at protected onsets. Record both limitations. Note-count, polyphony and piece duration are validity/structure measurements, not substitutes for melody identity.
 
-### PRESERVE
-- piece-level temporal extent within a frozen tolerance;
-- meter and essential MIDI structure;
-- primary melodic identity according to the chosen melody representation;
-- ordering of protected melodic events.
+## Style definitions and evaluator dependence
 
-### SOFTLY PRESERVE
-- melodic rhythm, depending on experiment;
-- harmonic/chroma relation to source;
-- phrase/section boundaries where reliable;
-- note density and polyphony within explicit budgets.
+Style is a corpus-relative pattern of pitch/register, rhythm/metrical placement, harmony, texture, repetition and accompaniment. Compare competing definitions before choosing an optimization objective.
 
-### STYLE-TRANSFORMABLE
-- accompaniment pitches and intervals;
-- metrical placement and duration patterns within constraints;
-- voicing/texture;
-- bounded density/polyphony;
-- later: ornamentation if explicitly introduced.
+The E1b RF is a **separate held-out evaluator** of E3 output, fitted on fold training works. It is not necessarily a fully independent definition of style: the corpus and overlapping feature families create dependence even when the fitted model differs. If a classifier becomes an objective, separate its fitting/evaluation roles and report remaining corpus/representation dependence explicitly. A distinct event-profile measurement (L0074) is useful precisely because it changes the representation and measurement structure; even that does not establish perceptual validity alone.
 
-The partition must be experiment-specific and versioned.
+E1d should compare current standardized RMS profiles, Gaussian profiles, train-only classifier affinity and event profiles on real held-out works, identities and frozen E2/E3 outputs. Relative/StyleRank/sequential measures are bounded extensions. Do not arbitrarily average all scores. Report target ranking, direction effects, degeneracy and agreement alongside content. Failed metrics remain diagnostic evidence and need not consume transfer optimization compute.
 
-## Current evidence
+## Leakage-safe representation research
 
-### E1
-Shows that the current 93-feature representation contains substantial composer-discriminative information under grouped-by-work evaluation.
+E1c reuses the frozen 5 repeats × 5 outer grouped folds with 3 inner folds. Fit imputation, scaling, selection, thresholds, profiles, classifiers and embedding/ranking models within the appropriate training fold. Keep names, metadata, paths and composer labels out of numerical features. Compare custom93, musif, jSymbolic, selected music21 and schema-defined combinations where feasible. Preserve custom93's names/order/semantics; wrappers may import frozen E1.
 
-It does not prove universal composer attribution, perceptual style, or that classifier optimization produces convincing transfer.
+The first feature pilot is nine predeclared samples, not two successful extractions. Select one lexical sample from each of the first three lexical work groups per composer within repeat 0 / outer fold 0 training data. Every sample gets success or an explicit failure record in both deterministic repetitions. Report schemas, versions and failure-status stability. Full custom93/cache comparisons are scientific audit artifacts, not default unit tests.
 
-### E2
-Documents why unconstrained/global edits are a weak baseline for content-preserving transfer.
+Matched MusicXML warrants a separate score-aware E1m investigation with musif/Partitura: notation may add information absent from score MIDI. Keep sample/work identities and matched-subset comparisons; do not silently merge symbolic-score and performance data. musif/music21/Partitura are currently absent from the audited environment; a jSymbolic JAR was not found. Isolate those dependencies in V2-02 after review.
 
-### E3
-The strongest current transfer experiment because it uses explicit feasibility constraints.
+## Architecture and boundaries
 
-The central unresolved issue is objective validity: its internal style objective correlates very weakly with the independent classifier-based evaluator.
+Reuse current representation, extraction and search where appropriate. Add `asset_paths.py`, `provenance.py` and `research_audit.py` for V2-01. Introduce `feature_backends`, `content_metrics` and `style_metrics` only when V2-02, V2-03 and V2-04 actually need them. No `musicians_style.v2`, duplicated E1–E4 implementation, speculative refactor or reverse dependency from frozen packages.
 
-### E4
-E4.6 is a valid negative result for a compact conditional GAN. Indefinite tuning is not justified by the current evidence.
+Future V2-05 starts only after E1d completion and another review. Prefer an external adapter/runner around frozen E3 to enforce zero transposition and exact protected pitches. Change shared E3 code only if external enforcement proves insufficient, with a separately reviewed minimal patch, unchanged old default and regression coverage. No objective candidates are selected for transfer now.
 
-## Core Research V2 questions
+## Evidence and test policy
 
-### RQ1 — representation
-Which symbolic feature representations reliably encode composer-discriminative information under leakage-safe grouped evaluation?
+Historical plans/reports remain unchanged; STATUS.md, this context, the matrix, registry and roadmap are the current entry points. Local results and checkpoints are ignored by Git but remain evidence. Record unavailable or contradictory historical provenance instead of fabricating a historical code/environment snapshot.
 
-### RQ2 — style metric
-Which corpus-relative style measures agree on real held-out works and provide useful evaluation of transformed outputs?
-
-### RQ3 — optimization objective
-Does replacing E3's current objective with literature-inspired alternatives improve agreement between optimization target and independent style evaluation?
-
-### RQ4 — transfer trade-off
-How much target-style movement can be achieved for a given content-preservation budget?
-
-### RQ5 — optional neural comparison
-Does one carefully selected neural method provide evidence beyond the interpretable optimization pipeline?
-
-## Evaluation principles
-
-### Two-axis evaluation
-Report separately:
-1. target-style movement;
-2. source-content preservation.
-
-Do not collapse them into one scalar too early.
-
-### Independent style measures
-Prefer at least two:
-- held-out composer-classifier probability;
-- train-only feature/profile distance;
-- StyleRank-like corpus similarity;
-- event/style-profile similarity;
-- target-vs-counterexample score.
-
-### Leakage prevention
-Fit only on training data:
-- normalization;
-- profiles;
-- classifiers;
-- feature selection;
-- thresholds;
-- embeddings;
-- target-vs-counterexample models.
-
-### Grouping
-Preserve grouping by musical work to avoid leakage of related material across evaluation partitions.
-
-## Architecture direction
-
-```text
-MIDI / MusicXML
-      ↓
-representation / parsing adapters
-      ↓
-feature extractors
-      ↓
-style models / metrics
-      ↓
-transformation / search
-      ↓
-independent evaluation
-      ↓
-experiment orchestration + reports
-```
-
-Experiment packages E1–E4 remain reproducibility layers. Do not immediately move all code.
-
-## MIR tooling policy
-
-- **custom93:** frozen first-class baseline.
-- **musif:** first high-priority external extractor.
-- **jSymbolic:** independent external baseline; prefer CLI/export adapter.
-- **music21:** selected theoretical descriptors and utilities; not automatically the canonical mutable representation.
-- **Partitura:** score-aware/MusicXML experiment and possible future score-performance work.
-- **MusPy:** optional metrics/preprocessing, not foundational.
-- **MidiTok:** only for a concrete sequence/neural experiment.
-- **OpenMusic + LZ:** external historical/pattern baseline; document reproducibly rather than tightly integrating into Python.
-
-## Literature policy
-
-The 13 selected papers are not 13 mandatory implementations.
-
-Each is classified as one or more of:
-- `REPRODUCE`;
-- `ADAPT_METHOD`;
-- `BORROW_OBJECTIVE`;
-- `BORROW_METRIC`;
-- `BASELINE`;
-- `RELATED_WORK_ONLY`.
-
-Repeated ideas across independent papers receive higher priority.
-
-## Repository usability goals
-
-Prefer:
-- small modules with explicit responsibilities;
-- config-driven variants;
-- one current `STATUS.md`;
-- paper-to-code mapping;
-- explicit schema/version IDs;
-- external data/result roots;
-- preserved historical experiment packages.
-
-Avoid:
-- giant experiment files accumulating all variants;
-- long-lived method branches;
-- silently changing old config meanings;
-- putting datasets, PDFs or checkpoints into Git.
-
-## Non-goals
-
-Research V2 does not require:
-- universal arbitrary-composer transfer;
-- adding a new composer without retraining;
-- full score voice separation;
-- expressive performance modelling;
-- production deployment;
-- training a large symbolic foundation model from scratch;
-- implementing every neural paper;
-- proving one definitive mathematical definition of musical style.
+Default pytest runs fast unit/smoke checks against checkout source. Property tests use explicit development/full profiles; integration/regression workflows are explicit. Dataset-wide scientific checks produce fresh audit artifacts. V2-01 is infrastructure verification only: no feature extraction, new content scoring, training, transfer generation or change to frozen protocols.

@@ -3,17 +3,16 @@
 Repozytorium badawcze pracy inżynierskiej dotyczącej analizy stylu kompozytorskiego
 i transferu stylu pomiędzy plikami MIDI.
 
-> **Stan projektu:** prototyp badawczy, nie gotowy system. Parser MIDI, ekstrakcja
-> podstawowych cech, infrastruktura eksperymentów, ewaluacja i operatory GA są
-> przetestowane jednostkowo. Potok GAN wymaga jednak przebudowy przygotowania
-> danych i inferencji, a tryb nazwany `per_artist` nie implementuje obecnie pełnego
-> CycleGAN-u A↔B. Nie należy interpretować dotychczasowych plików wynikowych jako
-> miarodajnego wyniku eksperymentu.
+> **Stan projektu (2026-10-04):** E1–E4 są zamrożonymi wynikami historycznymi.
+> E3 poprawia proxy stylu względem E2, ale zgodność celu z osobnym ewaluatorem
+> held-out jest słaba (r=0,044). E4.6 zakończył się walidacyjnym NO-GO.
+> Aktualny zakres: dokumentacja i V2-01 (pochodzenie importów, audyt i poziomy
+> testów). Kolejne eksperymenty wymagają osobnego przeglądu.
 
 ## Od czego zacząć
 
-- [Audyt repozytorium](docs/AUDYT_REPOZYTORIUM.md) — co faktycznie implementuje
-  kod, zgodność z celem pracy i przyczyny słabych wyników.
+- [Aktualny status](docs/STATUS.md) i [Research V2 roadmap](docs/research/ROADMAP.md) — bieżące ustalenia, testy i granice implementacji.
+- [Audyt repozytorium](docs/AUDYT_REPOZYTORIUM.md) — historyczny audyt; jego twierdzenia mogą być nieaktualne względem zamkniętych E1–E4.
 - [Plan naprawczy](docs/PLAN_NAPRAWCZY.md) — kolejność prac, kryteria akceptacji
   i minimalny program eksperymentów.
 - [Plan eksperymentu E1](docs/E1_PLAN.md) — przygotowanie lokalnego ASAP,
@@ -27,9 +26,12 @@ i transferu stylu pomiędzy plikami MIDI.
 - [Publiczne przykłady](examples/README.md) — krótkie porównania MIDI/WAV E3
   (Preludium Bacha i „Kotek”) oraz zagregowane wyniki i wykresy E2.
 
-E1 jest zamknięty decyzją GO (`balanced accuracy E1b = 0,864`; testy E1/GA:
-`105 passed`). E2 służy jako zamrożony baseline obecnego GA przed przebudową
-metody w E3.
+E1b uzyskał balanced accuracy 0,864. E2/E3 pozostają sparowanymi baseline'ami;
+historyczny E3 dopuszczał transpozycję melodii. Nowe eksperymenty transferu
+wymagają dokładnie oryginalnych chronionych wysokości, onsetów, note-off i
+kolejności zdarzeń. Nie interpretuj proxy klasyfikatora jako procentu
+percepcyjnego podobieństwa. Raporty historyczne pozostają niezmienione;
+[STATUS](docs/STATUS.md) opisuje aktualne dowody i ograniczenia.
 
 ## Rekomendowany zakres pracy
 
@@ -49,27 +51,47 @@ jedynym artefaktem. Warunkowany GAN może pozostać eksperymentem dodatkowym.
 
 | Obszar | Implementacja | Aktualny status |
 |---|---|---|
-| MIDI | parser, writer, pianoroll | działa, lecz pianoroll jest stratny |
-| Cechy | 42 wartości: tempo, histogramy, gęstość, długości, pauzy | działa; zestaw jest zbyt mały do tezy o stylu |
-| `conditional` | pojedynczy generator wielodomenowy inspirowany StarGAN | prototyp; wymaga segmentacji, walidacji i stabilizacji |
-| `per_artist` | pojedynczy generator i dyskryminator | **nie jest pełnym CycleGAN-em** |
-| GA | czteroparametrowa transformacja globalna | działa technicznie; E2 mierzy ją jako baseline, E3 ma ją przebudować |
-| Ewaluacja | odległości cech, testy statystyczne, odsłuch | infrastruktura jest, brak kompletnego eksperymentu |
-| CLI | `acquire`, `train`, `infer`, `evaluate`, `e1`, `e2` | tryb łączony nadal jest dostępny przez API Pythona |
+| MIDI | parser, writer, reprezentacja zdarzeń i pianoroll | pianoroll pozostaje stratny; zdarzenia są potrzebne do ścisłej ochrony |
+| Cechy | legacy42, frozen custom93, E3 event67 | kontrakty historyczne pozostają bez zmian |
+| E1 | grouped RF i kontrole przecieku | CLOSED / GO w trzech kompozytorach |
+| E2 / E3 | globalny GA / lokalny GA z ochroną względną do transpozycji | 300 wyników każdego, zamrożone baseline'y |
+| E4.6 | warunkowany GAN | validation NO-GO; brak autoryzacji kolejnego treningu |
+| Research V2 | asset_paths, provenance, research_audit | tylko V2-01; bez nowego drzewa pakietów |
+| CLI / odsłuch | istniejące eksperymenty i lokalny listener | demonstracja techniczna nie dowodzi jakości transferu |
 
-## Instalacja
+## Instalacja i pochodzenie importu
 
-Projekt zakłada Python 3.10 oraz środowisko z PyTorch. Na Windows:
+Projekt używa Python 3.10 i PyTorch; zależności/CUDA opisują `pyproject.toml`,
+`requirements.txt` i `environment.yml`. Nie aktualizuj zależności przy audycie
+istniejącego środowiska. Na Windows, z aktywnego checkoutu:
 
 ```powershell
-python -m venv .venv
 .venv\Scripts\Activate.ps1
-pip install -e .[dev]
+python -m pip install --no-deps --no-build-isolation -e .
+python -c "import musicians_style; print(musicians_style.__file__)"
 ```
 
-Wariant Conda jest opisany w `environment.yml`. Wersję PyTorch/CUDA należy
-dopasować do sterownika GPU; deklaracje w `pyproject.toml` i `requirements.txt`
-nie są obecnie jednym spójnym źródłem prawdy.
+Import musi wskazywać `src/musicians_style/__init__.py` tego checkoutu po
+rozwiązaniu ścieżek, również w worktree. Kopia w `.venv/Lib/site-packages`,
+choć znajduje się wewnątrz repozytorium, nie spełnia tego warunku. Przy nowym
+środowisku najpierw przygotuj wymagane zależności i narzędzia budowania; powyższy
+wariant editable nie pobiera ani nie aktualizuje zależności. Fallback checkout-first:
+
+```powershell
+$env:PYTHONPATH = (Resolve-Path ./src).Path
+python tools/research_audit.py --scope inventory --output experiments/<nowy-katalog>
+```
+
+Audyt sprawdza faktyczny import przed załadowaniem modułów badawczych i nie
+naprawia go automatycznie. Błąd zostawia diagnostykę w nowym katalogu i zwraca
+niepowodzenie. Pytest używa checkout-first `pythonpath = src` i własnego guardu.
+
+Korzenie lokalnych zasobów dla audytu: jawne `--data-root`, `--results-root`,
+`--literature-root`, następnie `MSM_DATA_ROOT`, `MSM_RESULTS_ROOT`,
+`MSM_LITERATURE_ROOT`, następnie `datasets`, `experiments`, `Literatura`
+checkoutu. Ścieżki względne są rozwiązywane względem checkoutu, nie bieżącego
+katalogu procesu. Stare loadery eksperymentów pozostają bez zmian. W worktree
+wskaż wspólne zasoby; nie kopiuj danych/wyników/PDF-ów.
 
 ## Podstawowe polecenia
 
@@ -236,15 +258,41 @@ docs/            dokumentacja audytu i plan dalszych prac
 `datasets/`, `experiments/`, `Literatura/`, `logseq_pages/` i modele są lokalnymi
 artefaktami ignorowanymi przez Git.
 
-## Testy
+## Testy i audyty
+
+Domyślny test deweloperski jest szybki i używa źródeł checkoutu. Kosztowne
+workflowy pozostają dostępne przez jawne poziomy, bez usuwania asercji:
 
 ```powershell
-pytest
-pytest -m property
-pytest -m "not slow"
+python -m pytest
+python -m pytest -o addopts= tests/property --hypothesis-profile=dev
+python -m pytest -o addopts= tests/property --hypothesis-profile=full
+python -m pytest -o addopts= tests/unit tests/integration -m "integration or regression"
+python -m pytest -o addopts= tests/unit tests/integration
+python -m pytest -o addopts= tests --hypothesis-profile=full
 ```
 
-Stan weryfikacji z 22 września 2026: **521 testów przechodzi**. Nie oznacza to jeszcze
-poprawności metody badawczej: brakuje m.in. testu pełnego utworu dłuższego niż
-jedno okno, prawdziwego testu zachowania długości, porównania domen A↔B oraz
-walidacji jakości transferu na wydzielonym zbiorze.
+Domyślnie wykluczone: property, integration, regression i slow. Property dev:
+limit 20 przykładów na każdą własność; full (domyślny po jawnym wybraniu
+property): zachowane oryginalne budżety 50/100/200/300. Integracja/regresja:
+trening, checkpoint→MIDI, HTTP oraz kosztowne wykresy/raporty. Tanie sprawdzenia
+kształtów modeli i strat pozostają w szybkim poziomie. `-o addopts=` usuwa
+wykluczenia; ostatnie polecenie jest pełnym, niefiltrowanym przebiegiem.
+
+Weryfikacja V2-01: fast 452 passed / 64 deselected w 19,59 s; property dev
+17 passed w 9,34 s; pełne unit/integration/regression 527 passed w 42,89 s.
+Nie uruchomiono pełnych budżetów property; sprawdzono ich zachowanie osobno.
+Brak nowych badań naukowych/treningu/transferu w tym przebiegu.
+
+```powershell
+python tools/research_audit.py --scope inventory --output experiments/<nowy-inventory>
+python tools/research_audit.py --scope baseline --output experiments/<nowy-baseline>
+```
+
+Inventory zapisuje środowisko, zasoby i poziomy testów. Baseline dodatkowo
+weryfikuje 150 źródeł, podziały/snapshoty, 600 wyników E2/E3 i E4.6 checkpoint/
+walidację. Katalog wyjściowy musi być nowy. Audyt nie ekstraktuje cech, nie
+oblicza nowych metryk treści, nie trenuje i nie regeneruje MIDI. JSON/report
+zawierają jawne błędy/braki oraz ograniczenia historycznego pochodzenia.
+Duże audyty naukowe produkują artefakty poza pytest. Szczegóły i następne
+bramki przeglądu: [ROADMAP](docs/research/ROADMAP.md).

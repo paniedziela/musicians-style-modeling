@@ -1,186 +1,57 @@
-# EXPERIMENT_REGISTRY — experiment identities and evidence
+# EXPERIMENT_REGISTRY — frozen evidence and proposed Research V2 experiments
 
-The registry separates historical/frozen scientific artifacts from new Research V2 experiments.
+Updated 2026-10-04. Experiment identifiers describe scientific protocols; Research V2 does not create a parallel Python implementation tree. Only V2-01 is authorized and implemented in this pass. No frozen evidence is rewritten or silently rerun under an existing schema.
 
-## Frozen experiments
+## Frozen identities
 
-| ID | Status | Question | Primary output | Mutability |
-|---|---|---|---|---|
-| E1 | CLOSED / GO | Do symbolic features distinguish Bach, Beethoven and Chopin under grouped evaluation? | grouped OOF classification results, feature importance | frozen |
-| E2 | CLOSED / BASELINE | What does the legacy global GA achieve and damage? | 300 paired transfer tasks | frozen |
-| E3 | CLOSED / GO WITH LIMITATIONS | Can constrained local GA improve target-style proxy while protecting content better than E2? | 300 paired tasks + content/style metrics | frozen |
-| E4.5 | CLOSED / NO-GO | First conditional GAN protocol | validation-only negative result | frozen |
-| E4.6 | CLOSED / NO-GO | Improved conditional GAN protocol | validation-only negative result; outer test unopened | frozen |
+| ID / schema | Local artifacts | Evidence and status |
+|---|---|---|
+| E1 / e1.0.0 manifest, e1.1.0 splits, e1.3.0 composition features | `datasets/derived/e1_asap`; `experiments/e1_asap_e1b_2026-09-02_005705_449734` | CLOSED / GO; 150 samples, 87 works; grouped 5×5 outer / 3 inner; custom93; RF BA 0.86424 |
+| E2 / e2.0.0 | `experiments/e2_asap`; `configs/e2_asap.yaml` | CLOSED / FROZEN; 300 outputs; global four-parameter legacy GA, 42-feature objective / custom93 held-out RF evaluator; Δp 0.02767 |
+| E3 / historical e3 artifacts | `experiments/e3_asap`; `configs/e3_asap.yaml` | CLOSED / GO WITH LIMITATIONS; 300 outputs; local GA with 67 event-profile components; RMS-z objective; Δp 0.03771; objective/evaluator r=0.04395 |
+| E4.5 / historical v2 artifacts | `experiments/e4_asap_v2` | CLOSED / validation NO-GO; retain earlier conditional GAN negative result |
+| E4.6 / e4.6.0 status | `experiments/e4_asap_v3`; `configs/e4_asap_v3.yaml` | CLOSED / validation NO-GO; 86 validation MIDIs; best.pt SHA256 e165ded23e0202dd6798dbad6ff16f5ca33fce8c6c13428983412e1fdf0c0d5d |
 
-No frozen experiment is silently rerun under the same schema after changing code.
+E2/E3 use repeat 0 paired directions/tasks. E3 mean Δp CI [0.02850, 0.04604]; E3−E2 CI [0.00134, 0.02240], p=0.0395. E3 has 185 positive, 67 zero and 48 negative movements; 45 identity fallbacks. E4.6 mean validation Δp=0.00340, three of six directions positive, melody median 0.91625, onset 0.8540; four validation criteria fail. Local absence of outer-test artifacts agrees with the closed-test policy but cannot prove data was never inspected.
 
-## Research V2 proposed experiments
+Historical E3's melody policy permits global ±6-semitone transposition. 233/300 outputs use nonzero transposition. Keep it as the transposition-allowed baseline. New transfer experiments require exact original protected melody pitches, onsets, note-offs and order. A later optional policy ablation requires a new identity/config; do not relabel old outputs.
 
-### E1c — feature extractor comparison
+## Historical provenance limitations
 
-**Hypothesis**
+Canonical manifest code reference: `08e4cc6a00d6c6230560907455eb246b97f174b7`. E1 run manifest: `fae61` prefix; the historical E1 report references `5e827` prefix. E2 manifest: `9f7177e23230ae59f84703d28a1d2cd67242e92b`. E3 lacks a complete recorded code/environment snapshot. References and anonymized/reworked history are retained as evidence, not reconciled by guessing. Hash/snapshot checks establish current consistency, not full reproducibility of the original environment. V2 audits record their own current checkout HEAD separately.
 
-Established MIR descriptors and the thesis-specific 93-feature representation contain complementary composer-discriminative information.
+## V2-01 — evidence inventory and environment guard
 
-**Variants**
-- custom93;
-- musif;
-- jSymbolic;
-- selected music21;
-- custom93 + musif;
-- custom93 + jSymbolic;
-- selected combined representation.
+Infrastructure audit, not a new musical experiment. Separate `inventory` from explicit `baseline` scope. Reserve a new output directory; record checkout/import/environment/Git/config/root provenance, asset inventory, baseline checks, test-tier inventory and report. Reject ambient imports outside the active checkout's resolved `src/musicians_style`, including `.venv` copies inside the checkout. No automatic repair. Audit failures and unavailable information remain inspectable. Scientific checks remain outside pytest.
 
-**Protocol**
+## E1c — MIR representation comparison (proposed)
 
-Reuse the E1 grouped split logic. Feature selection/scaling is train-only.
+**Hypothesis:** established MIR descriptors may complement custom93. Compare custom93, musif, jSymbolic, selected music21 and named/schema-defined combinations where extraction is feasible. Reuse frozen grouped splits; no split regeneration to accommodate failures. All preprocessing/model choice uses inner training data only. Primary outcomes: grouped balanced accuracy/macro-F1, clustered CIs, family stability, extraction coverage, schema size and measured runtime.
 
-**Primary metrics**
-- balanced accuracy;
-- macro-F1;
-- clustered confidence interval;
-- runtime and feature count;
-- feature-family importance/stability.
+V2-02 begins with nine predeclared training samples and two extraction attempts per sample, including deterministic failure records. Full E1c comes after feasibility review. If an extractor has incomplete coverage, report failures and a matched-subset custom93 comparison; do not compare differently composed populations as if matched. An external extractor need not outperform custom93 for a valid result. Artifacts: pilot manifest, versions/config/source hashes, schemas/cache, failures, fold predictions and report. Frozen outer folds have already been inspected historically; describe further exploration honestly rather than claiming a fresh untouched confirmatory test.
 
-**Acceptance**
+## E1m — matched MusicXML study (COULD, proposed separately)
 
-A technically valid result is sufficient. An external extractor does not need to beat custom93 to be scientifically useful.
+Compare MIDI and score-aware extraction on matched 150 identities/work groups with the same grouped protocol. musif/Partitura dependencies and notation-derived features are versioned separately. GO requires usable notation and bounded cost; missing XML and differences in coverage are explicit. No automatic launch during V2-01.
 
-**Artifacts**
-- feature schema per backend;
-- cached feature matrix;
-- fold predictions;
-- comparison report.
+## Content audit — V2-03 (proposed)
 
-### E1d — style metric / representation comparison
+Audit the 600 frozen E2/E3 outputs without generation. Separate protected melody identity, structural/technical invariants, velocity invariance of the current transform, soft harmonic/structure preservation and transformable accompaniment. Compare semantic on/off masks as well as parsed notes for overlaps. Report historical E3 transposition explicitly; new policy is exact-pitch. Produce per-output diagnostics/hashes and direction/cluster summaries outside pytest. Synthetic identity, deliberate corruption, overlap and transposition cases belong in small tests.
 
-**Hypothesis**
+## E1d — competing style measurements (V2-04, proposed)
 
-Different corpus-relative style measures produce meaningfully different rankings, and some agree better with held-out composer identity than the current E3 objective.
+Compare named train-only RMS67, Gaussian67, classifier93 and structurally distinct event-profile candidates; this is a candidate evaluation set, not the future transfer pilot selection. Optional relative/StyleRank/sequential extensions require bounded feasibility. Frozen folds govern fitting, scaling, sparse-vocabulary construction, thresholds and target/counterexample populations. Score real held-out works, identities and frozen E2/E3 outputs. Report target ranking, direction effects, score variance, objective/evaluator agreement and content dependence, clustered by original work and paired where appropriate.
 
-**Candidate metrics**
-- current standardized profile distance;
-- classifier probability;
-- Gaussian profile score;
-- target-vs-counterexample score;
-- StyleRank-like score;
-- Groove2Groove-inspired event profiles;
-- optional Markov/pattern score.
+RF is a separate held-out evaluator, not necessarily an independent style definition because its corpus/features overlap with candidate measures. Event profiles add a more distinct measurement perspective. Do not use one fitted classifier as objective and sole evaluator.
 
-**Data**
+Predeclare objective eligibility before scoring: leakage-safe fitting; finite, nondegenerate scores; deterministic behavior; grouped held-out target-ranking balanced accuracy with clustered 95% CI lower bound above chance (1/3 for three composers). Fix ranking/tie/CI procedures in the E1d protocol before running it. Failed candidates remain diagnostic evidence, not optimization targets. These criteria do not prove perceptual validity.
 
-Evaluate both real held-out works and frozen E2/E3 outputs.
+## Objective pilot — V2-05 (SHOULD, provisional)
 
-**Primary analyses**
-- target-vs-source ranking on real works;
-- correlation/agreement among style metrics;
-- relation to E3 internal objective;
-- direction-wise behavior.
+Requires E1d completion and another review. Select up to two eligible objective variants from E1d under the predeclared criteria; no RMS67/Gaussian67/classifier93 final set is hard-coded now. If none qualifies, NO-GO without transfer compute. Freeze selection before transformed-output optimization.
 
-**Acceptance**
+Bound a six-direction pilot, declare source works/seeds/budget/constraints and measure per-task cost before launch. Reuse E3 externally, reject nonzero transposition, check exact protected pitches and report rejected candidates/feasibility budget. Preserve identity and frozen E2/E3 paired baselines. Modify shared E3 only if external enforcement is insufficient, after separate minimal-change review with old-default regression tests. Report style and content separately, remaining evaluator dependence, runtime and failures. No optional policy ablation or neural training is automatic.
 
-At least two independent style measures implemented and compared.
+## Later decisions
 
-### E3a — classifier-driven objective
-
-Use train-only composer probability/log-odds as optimization signal.
-
-Critical requirement:
-evaluation uses a separately fitted or cross-fitted evaluator to avoid circular evidence.
-
-### E3b — distribution-driven objective
-
-Use Gaussian/empirical feature distributions inspired by L0067.
-
-Ablate semantic families such as pitch, rhythm, harmony and texture.
-
-### E3c — relative / sequential objective
-
-Candidates:
-- target-vs-counterexample classifier/log-likelihood;
-- Markov transition score;
-- small pattern model inspired by L0027/L0103.
-
-Implement only after E3a/E3b provide a stable comparison harness.
-
-### E3x — objective comparison
-
-Use one common transformation harness and equal evaluation budget.
-
-Report:
-
-```text
-objective
-→ internal objective gain
-→ independent target-style gain
-→ content preservation
-→ runtime
-→ failure / identity rate
-```
-
-The main question is objective validity, not which optimizer achieves the largest uncalibrated fitness.
-
-### E1m — optional MusicXML / score-aware comparison
-
-Use matching ASAP works:
-- MIDI/custom or MIDI/musif;
-- MusicXML/musif or Partitura-derived features.
-
-Question:
-does richer notation add composer-discriminative information beyond score MIDI?
-
-### E5 — optional neural comparison
-
-This is intentionally not named E4.7.
-
-Candidates should be reassessed after E1c/E1d/E3x:
-- VAE / Transformer Autoencoder;
-- MuseMorphose-inspired conditional model;
-- METEOR-inspired melody-aware model;
-- public pretrained composer model adaptation;
-- Composer Vector if reproduction is bounded.
-
-**GO criterion**
-
-The selected model answers a research question not already answered by the interpretable pipeline and uses the same content/style evaluation framework.
-
-## Shared output contract for new V2 experiments
-
-Each run should record:
-
-```text
-run_manifest.json
-config_snapshot.yaml
-git.json
-environment.json
-dataset_fingerprint.json
-split_fingerprint.json
-feature_schema.json
-objective_schema.json
-progress.jsonl
-results.json
-report.md
-```
-
-Where applicable:
-- predictions;
-- transformed MIDI;
-- cached features;
-- fitted train-only profiles/models;
-- plots.
-
-## Naming policy
-
-Use explicit immutable identifiers, for example:
-
-```text
-custom93_v1
-musif_v1
-jsymbolic_v1
-style_metric_classifier_v1
-style_metric_gaussian_v1
-style_metric_stylerank_v1
-e3_objective_classifier_v1
-```
-
-Never reuse an identifier after altering semantics.
+A listening study requires a separate design/approval; an objective win alone is not perceptual success. Keep new GAN tuning, from-scratch Transformers and performance-style modelling deferred. Neural baselines require compatible representation, accessible implementation/checkpoints, bounded cost and a stronger common evaluation framework.
