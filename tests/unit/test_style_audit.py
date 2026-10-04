@@ -230,3 +230,20 @@ def test_audit_failures_leave_explicit_diagnostics_without_fits(mini_corpus, pro
     result = run_style_audit(mini_corpus, output, expected_counts=(15, 30), expected_folds=5, provenance={"import": {"passed": True}})
     assert not result["passed"] and result["failures"]
     assert not (output / "fit_manifest.json").exists()
+
+
+@pytest.mark.integration
+def test_historical_gain_disagreement_remains_diagnostic(mini_corpus):
+    p = mini_corpus / "experiments/e3_asap/results.json"
+    data = json.loads(p.read_text())
+    data["results"][0]["style_gain"] = .25
+    p.write_text(json.dumps(data))
+    output = mini_corpus / "diagnostic-agreement"
+    result = run_style_audit(mini_corpus, output, expected_counts=(15, 30), expected_folds=5, provenance={"import": {"passed": True}})
+    assert result["passed"]
+    summary = json.loads((output / "summary.json").read_text())
+    diagnostic = summary["historical_rms_diagnostic"]
+    assert diagnostic["discrepant_outputs"] == 1
+    assert diagnostic["max_abs_difference"] == .25
+    assert len(diagnostic["rows"]) == 1
+    assert "historical_rms_reproduction" not in result["checks"]

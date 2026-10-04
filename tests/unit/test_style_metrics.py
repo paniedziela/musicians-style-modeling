@@ -95,3 +95,17 @@ def test_train_only_gaussian_floor_rms_exact_and_fixed_logistic_determinism():
         fit_measures(train, forbidden, reprs, custom, events, vectors67=corrupt_vectors)
     assert first["logistic"][-1].C == 1
     assert first["logistic"][-1].max_iter == 5000
+
+
+def test_duration_velocity_reassociation_changes_frozen_skyline_only():
+    from collections import Counter
+    from musicians_style.e1.composition_features import extract_composition_features
+    tail = NoteEvent(480, 0, 60, 80, 480)
+    a = InternalRepr(480, (NoteEvent(0, 0, 72, 49, 120), NoteEvent(0, 0, 72, 73, 960), tail))
+    b = InternalRepr(480, (NoteEvent(0, 0, 72, 49, 960), NoteEvent(0, 0, 72, 73, 120), tail))
+    # FIFO/serialization can preserve aggregate notes while associating durations with different velocities.
+    without_velocity = lambda p: Counter((n.tick, n.channel, n.pitch, n.duration_ticks) for n in p.notes)
+    assert without_velocity(a) == without_velocity(b)
+    assert not np.array_equal(style_vector(a)[0], style_vector(b)[0])
+    assert np.array_equal(extract_composition_features(a), extract_composition_features(b))
+    assert all(np.array_equal(event_profiles(a)[0][n], event_profiles(b)[0][n]) for n in ('onset_duration', 'time_pitch'))

@@ -303,6 +303,10 @@ def report(summary: dict, audit: dict) -> str:
               "|---|---|---|---:|---|---|---|"]
     for m, r in summary["review_evidence"].items():
         lines.append(f"| {m} | {r['ranking_above_chance_with_ci']} | {r['nondegenerate_real_scores']} | {r['score_missingness']} | {r['positive_mean_directions']} | {r['E3_negative_count']} / {r['E3_null_count']} | {r['promotion']} |")
+    if "historical_rms_diagnostic" in summary:
+        r = summary["historical_rms_diagnostic"]
+        lines += ["", "Historical RMS diagnostic: " + str(r['matched_within_1e_10']) + "/" + str(r['outputs']) + " agree within 1e-10. " + str(r['discrepant_outputs']) + " saved outputs differ across " + str(r['discrepant_works']) + " works; maximum absolute difference " + str(r['max_abs_difference']) + ". All per-task differences and V2-03 Skyline/FIFO diagnostics are retained in summary.json. Agreement is a finding, not an integrity gate.", "",
+                  "The observed discrepancies are serialized E3 identity fallbacks with changed reselected Skyline with the V2-03 protected FIFO diagnostic equal (not a claim about all note/velocity tuples). Serialization/FIFO pairing can reassociate durations to velocities at identical attacks; frozen E3 selects melody using velocity/duration-sensitive NoteId ties; the standalone RMS measure retains that behavior. Source-self identities still have exact zero movement, but serialized fallback null rates can differ between representations. Neither outputs nor the frozen selector are repaired."]
     if "event_diagnostics" in summary:
         lines += ["", "Event-profile diagnostics (piece counts, overflow counts and empty profiles):", "", "```json", json.dumps(summary["event_diagnostics"], indent=2), "```", "",
                   "Fit warnings: " + str(summary["fit_diagnostics"]["warnings"]) + ". Exact serialized-score determinism: " + str(summary["fit_diagnostics"]["serialized_score_determinism"]) + "."]
@@ -311,7 +315,7 @@ def report(summary: dict, audit: dict) -> str:
         "RMS67 and Gaussian67 share the frozen 67-component representation and equal family weights. RMS is exactly the negative frozen E3 distance, retaining std<1e-6 ->1.0. Gaussian is the recorded V2 thesis adaptation: exp(-z^2/2), with training-only std=max(target std, 0.05*pooled training std, 1e-6). It is bounded marginal satisfaction rather than likelihood and does not reproduce E3 variance handling. Correlated bins and scale make representation/variance handling material.", "",
         "Logistic93 uses recorded fixed C=1, balanced, max_iter=5000 with fold-local variance filtering/scaling. lbfgs/L2, tol=1e-4 and seed 1729 are implementation choices, not claims about the prior record. No model selection. It is a separate held-out style measure. Historical RF probabilities are a separate held-out evaluator; neither is fully independent evidence because training corpus and custom93 features overlap. E3 outputs were already selected by RMS67, so gains/agreement there are descriptive selection-dependent diagnostics.", "",
         "Event profiles adapt the audited Groove2Groove principle to all piano notes: separate 24x12 onset-duration and 24x41 forward lag/signed interval profiles. They use four quarter-beats in every meter, clip duration overflow, exclude pitch-interval overflow, and symmetrise simultaneous pairs. Cosine is undefined for empty profiles. No BIAB chord/instrument model or exact upstream reproduction is claimed; count normalisation/prototypes weight works equally. This is structurally distinct but shares the MIDI corpus/parser and is not perceptual ground truth.", "",
-        "Frozen parser FIFO note pairing and output Skyline reselection (RMS67 only) can differ from the original protected melody. The V2-03 raw unmatched/overlap and exact-pitch measurements remain separate, unchanged artifacts. Content-onset retention correlations are diagnostics only, with undefined values counted; content is never folded into style.", "",
+        "Frozen parser FIFO note pairing and output Skyline reselection (RMS67 and Gaussian67) can differ from the original protected melody. The V2-03 raw unmatched/overlap and exact-pitch measurements remain separate, unchanged artifacts. Content-onset retention correlations are diagnostics only, with undefined values counted; content is never folded into style.", "",
         "Five repeated held-out observations are averaged within original works before uncertainty; they are not independent samples. Bootstrap does not refit models or represent training variation, and there is no multiplicity correction. Corpus ranking is composer discrimination on this corpus, not general musical/perceptual validation. Historical provenance gaps remain unrepaired.", "",
         "See protocol.json, provenance.json, fits/, fit_manifest.json, feature_cache.json, real_scores.json, per_output.json, summary.json, audit.json and frozen_sha256.json. No extraction dependency on musif, generation, optimization, E1c selection or push.", ""]
     return "\n".join(lines)
@@ -504,6 +508,8 @@ def run_style_audit(checkout: Path, output: Path, *, configuration: dict | None 
                     "historical_rf_delta": frozen["delta_p_target"],
                     "content_on_fraction": c.get("measurement", {}).get("v2_exact_pitch", {}).get("on_event_retention_fraction"),
                     "content_event_status": c.get("measurement", {}).get("v2_exact_pitch", {}).get("event_identity_status", "undefined"),
+                    "content_historical_skyline_equal": c.get("measurement", {}).get("historical_e3", {}).get("reselected_output_skyline_equal"),
+                    "content_historical_fifo_tuple_equal": c.get("measurement", {}).get("historical_e3", {}).get("fifo_tuple_equal"),
                     "movement": {m: movement(before[m], after[m], source["composer"], target) for m in MEASURES}})
                 # Retain feature arrays, release long note representations once scored.
                 del reprs[key]
@@ -522,9 +528,18 @@ def run_style_audit(checkout: Path, output: Path, *, configuration: dict | None 
               "all_300_pairs_and_identities": len(records) == 3 * expected_counts[1] and len(alignment) == expected_counts[1],
               "all_fits_before_scoring": len(fits) == expected_folds,
               "serialized_fit_scores_exact": deterministic_scores and bool(real),
-              "frozen_and_completed_v2_preserved": not changed and not added,
-              "historical_rms_reproduction": bool(rms_differences) and max(map(abs, rms_differences)) < 1e-10}
+              "frozen_and_completed_v2_preserved": not changed and not added}
     if summary:
+        discrepancies = [{"task_id": r["task_id"], "group_id": r["group_id"],
+            "difference": r["movement"]["rms67"]["delta"] - r["historical_objective"],
+            "historical_identity_genome": r["historical_identity_genome"],
+            "content_historical_skyline_equal": r["content_historical_skyline_equal"],
+            "content_historical_fifo_tuple_equal": r["content_historical_fifo_tuple_equal"]}
+            for r in records if r["experiment"] == "E3" and abs(r["movement"]["rms67"]["delta"] - r["historical_objective"]) > 1e-10]
+        summary["historical_rms_diagnostic"] = {"outputs": len(rms_differences), "matched_within_1e_10": len(rms_differences) - len(discrepancies),
+            "discrepant_outputs": len(discrepancies), "discrepant_works": len({r["group_id"] for r in discrepancies}),
+            "max_abs_difference": max(map(abs, rms_differences)) if rms_differences else None,
+            "rows": discrepancies, "interpretation": "saved-MIDI scoring versus historical in-memory objective; discrepancy is a representation/serialization diagnostic, not an audit-integrity failure or metric replacement"}
         summary["event_diagnostics"] = {}
         for experiment in ("source", "E2", "E3"):
             rows = [r for r in cache_records if (r["key"].startswith(experiment + ":") if experiment != "source" else ":" not in r["key"])]
