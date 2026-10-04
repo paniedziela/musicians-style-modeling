@@ -12,12 +12,15 @@ E1b RF balanced accuracy is 0.86424, clustered CI [0.83781, 0.89059], macro-F1 0
 
 ## Content contract
 
+V2-03 review clarification recorded before V2-02 implementation (2026-10-04): ordering of distinct simultaneous same-tick MIDI events remains available as a diagnostic, but does not by itself constitute a hard melodic-identity violation. Exact protected pitch, onset and note-off / identifiable duration are the primary hard requirements. Completed V2-03 code, scientific artifacts and completion statistics retain their historical strict-order interpretation; they are not rewritten or regenerated.
+
 Content and style are separate axes. Version each experiment's melody selector and constraints; a Skyline mask is an operational approximation, not a musicological ground truth.
 
 | Attribute | Policy | Interpretation |
 |---|---|---|
 | Protected melody pitch | PRESERVE exactly | Original absolute pitches; no global transposition in new transfer experiments |
-| Protected onset, duration/note-off and event order | PRESERVE exactly | Melodic identity; preserve selected on/off events and their order |
+| Protected onset and note-off / identifiable duration | PRESERVE exactly | Primary hard melodic identity requirements alongside protected absolute pitch |
+| Ordering of distinct simultaneous same-tick MIDI events | Diagnostic | Remains measurable, but alone is not a hard violation of melodic identity |
 | Meter, essential metadata, MIDI format/resolution and channels where required | PRESERVE | Structural/technical invariants, distinct from melodic identity |
 | Velocity when the transformation leaves it unchanged | Report separately | Current transformation invariant; score-MIDI velocity is not automatically fundamental melodic content |
 | Harmonic/chroma relation, phrase/section structure | SOFTLY_PRESERVE | Named measurements and predeclared tolerances; no invented aggregate content scalar |
