@@ -1,6 +1,28 @@
 # STATUS — Research V2 entry point
 
-Updated **2026-10-04** after the separately authorized **V2-02 feature feasibility only**. V2-01 and V2-03 remain complete. **Stop for review after V2-02; local commits authorized, no push. Full E1c, V2-04 and V2-05 were not started.** Research V2 is an experiment phase, with no parallel package namespace.
+Updated **2026-10-05** after **V2-04 — E1d style-measure audit only**. V2-01/V2-02/V2-03 remain complete and preserved. **Stop after V2-04 for review; local commits only, no push. Full E1c and V2-05 remain unstarted.** Research V2 has no parallel package namespace.
+
+## V2-04 completion
+
+25 outer-training bundles; 750 real held-out observations from 150 pieces/87 works; 300 exactly task-aligned E2/E3 pairs and 300 target-directed source-self references. All 150 source custom93 vectors exactly match the frozen cache. All style scores are defined/nondegenerate, all source-self deltas zero. Definitive audit passed in 348.13 s; all 3,573 protected files preserved. Artifacts: `experiments/research_v2_04_2026-10-05/style_verified`.
+
+| Measure | Work-balanced ranking | Clustered 95% CI | E3 positive mean directions | E3 negative / null tasks |
+|---|---:|---|---:|---|
+| rms67 | 0.554152 | [0.500890, 0.610256] | 6/6 | 10/300; 32/300 |
+| gaussian67 | 0.558248 | [0.508220, 0.610659] | 6/6 | 17/300; 32/300 |
+| logistic93 | 0.823703 | [0.768912, 0.877364] | 6/6 | 57/300; 45/300 |
+| onset_duration | 0.397947 | [0.337051, 0.456813] | 5/6 | 123/300; 46/300 |
+| time_pitch | 0.697950 | [0.629007, 0.766048] | 4/6 | 66/300; 92/300 |
+
+All five ranking CI lower bounds clear 1/3, but onset-duration is marginal (0.337051). Logistic93 and time-pitch have the strongest held-out ranking here. E3 positive mean directions are 6/6 for RMS/Gaussian/logistic, 5/6 for onset-duration and 4/6 for time-pitch; several direction CIs cross zero. E2 has negative means in all six directions under RMS/Gaussian/event profiles, but logistic has five positive means. These definitions disagree materially; no objective is selected.
+
+Saved-MIDI RMS agrees with historical E3 gain within 1e-10 for 287/300 outputs. Thirteen serialized identity fallbacks across seven works share V2-03 Skyline reselection discrepancies (max difference 0.002693). These remain explicit diagnostics; no selector/output/delta is repaired and no threshold is tuned. Source-self identity and serialized-fallback null rates remain distinct.
+
+RMS/Gaussian share the 67-component representation, but their predeclared variance policies differ: link function and variance handling are not isolated separately. Logistic93/historical RF share corpus/custom93 and are separate held-out evidence, not fully independent. Event profiles are all-piano adaptations using fixed four-quarter-beat windows; 117/150 sources contain non-4/4 meter and 65 have meter changes. Time-pitch ignores global transposition/duration; onset-duration has weak ranking and frequent negative E3 movement. No perceptual validity or fresh untouched confirmatory test is claimed.
+
+Review ranking/clustered uncertainty, spread/missingness, determinism, direction consistency, null/negative rates, agreement structure, leakage and interpretability together. No single scalar promotes a candidate; failed candidates remain diagnostic evidence. **Stop for V2-04 review; no V2-05, full E1c or push.**
+
+See [V2_04_COMPLETION.md](research/V2_04_COMPLETION.md) and [protocol](research/V2_04_PROTOCOL.md) for exact files, commands, provenance and deviations.
 
 ## V2-02 completion
 
@@ -73,12 +95,12 @@ Skipped deliberately: full-budget property execution, new feature/content extrac
 
 ## Next review and bounded backlog
 
-V2-01, V2-03 and the separately authorized V2-02 are complete. Review V2-02 before further work. No full E1c classification, style-measure fitting or objective search was launched.
+V2-01 through V2-04 are complete. Review E1d before choosing a future objective. Fixed fitting ran only for E1d; no full E1c, objective search or transfer generation ran.
 
 1. V2-01 — roots/provenance/read-only evidence audit/test tiers: COMPLETE.
-2. V2-02 — nine-sample feature feasibility: COMPLETE, STOP FOR REVIEW.
+2. V2-02 — nine-sample feature feasibility: COMPLETE; artifacts preserved.
 3. V2-03 — 600-output content audit plus 150 identities: COMPLETE; artifacts preserved.
-4. V2-04 — E1d competing held-out style measurements: planning only, MUST, MEDIUM.
+4. V2-04 — E1d competing held-out style measurements: COMPLETE, STOP FOR REVIEW.
 5. V2-05 — objective pilot: provisional SHOULD, candidates/complexity/budget after E1d validity and another review.
 
-ROADMAP retains the bounded backlog. Introduce capability modules only when authorized tasks need them. Do not start full E1c, V2-04 or V2-05, and do not push.
+ROADMAP retains the bounded backlog. Introduce capability modules only when authorized tasks need them. Do not start full E1c or V2-05, and do not push.

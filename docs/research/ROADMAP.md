@@ -1,10 +1,10 @@
 # ROADMAP — revised Research V2 implementation boundary
 
-Updated 2026-10-04. **V2-01, V2-03 and the separately authorized V2-02 feature feasibility are complete. Stop for review after V2-02; local commits authorized, no push. Do not start full E1c, V2-04 or V2-05.** Research V2 is an experiment phase, not `musicians_style.v2` or a second implementation tree. The remaining backlog is unchanged; the V2-01 boundary below is historical.
+Updated 2026-10-05. **V2-01 through V2-04 are complete. Stop after the V2-04 E1d audit for review; local commits only, no push. Full E1c and V2-05 remain unstarted.** Research V2 is an experiment phase within the existing implementation tree. The bounded backlog remains unchanged; earlier task boundaries below are historical.
 
 ## Scope and architecture
 
-Keep existing repository layout, E1–E4 source, configurations, feature contracts, schemas and artifacts stable. New modules may wrap/import frozen implementations; frozen experiments must not depend on them. Introduce reusable capabilities only for concrete needs, with small modules first. V2-01 adds root/provenance/audit support; `content_metrics` was introduced for V2-03 and `feature_backends` only for V2-02; `style_metrics` remains a future task location, not foundation scaffolding. No tagging, worktree creation, branch changes or speculative search refactor is required for this pass.
+Keep existing repository layout, E1–E4 source, configurations, feature contracts, schemas and artifacts stable. New modules may wrap/import frozen implementations; frozen experiments must not depend on them. Introduce reusable capabilities only for concrete needs, with small modules first. V2-01 adds root/provenance/audit support; `content_metrics` was introduced for V2-03 and `feature_backends` only for V2-02; `style_metrics.py` and the explicit `style_audit.py` runner were introduced only for concrete V2-04 needs; no registry/framework was added. No tagging, worktree creation, branch changes or speculative search refactor is required for this pass.
 
 Root configuration order: explicit options, then MSM_DATA_ROOT / MSM_RESULTS_ROOT / MSM_LITERATURE_ROOT, then active checkout's datasets / experiments / Literatura. Resolve relative options against that checkout and record selection sources. Do not relocate/duplicate local assets or change legacy loaders. Separate source checkout from asset roots when using another worktree.
 
@@ -76,19 +76,37 @@ Wrap custom93 without duplication. Select nine training samples: first three lex
 
 Review clarification (recorded before V2-02 implementation): distinct simultaneous same-tick order is diagnostic, not a hard melodic-identity violation on its own. Exact protected pitch, onset and note-off / identifiable duration remain primary. The completed V2-03 strict-order contract/statistics and artifacts above are retained unchanged.
 
-### V2-04 — E1d style-measure comparison — MUST, planning only
+### V2-04 — E1d style-measure comparison — COMPLETE, stop for review
 
-**Reason:** weak E3 agreement requires measurement validity before search compute. **Read:** E1 grouped fitting/evaluator, E3 67-component RMS implementation, V2-03 content audit and matrix L0034/L0067/L0074/L0230. **Allowed later:** concrete `src/musicians_style/style_metrics` and E1d runner/config, small tests and new artifacts; adapters can import frozen code.
+Implemented concrete `src/musicians_style/style_metrics.py`, `style_audit.py`, thin `tools/style_audit.py`, synthetic checks and definitive artifacts. Frozen code has no reverse imports. [V2_04_PROTOCOL.md](V2_04_PROTOCOL.md) fixes formulas/fitting/ties/uncertainty before scores; [V2_04_COMPLETION.md](V2_04_COMPLETION.md) records exact verification/provenance/deviations. No broad replanning, musif requirement, E1c selection or transfer search.
 
-**Acceptance:** train-only fitting for named candidate RMS/Gaussian/classifier/event-profile measures; identities, real held-out works and frozen E2/E3 scored; finite/nondegenerate scores, deterministic behavior, leakage tests and grouped clustered target-ranking assessment. Explain that RF is a separate held-out evaluator with corpus/feature dependence; event profiles provide a structurally distinct perspective. Predeclare tie handling, clustering/CI and above-chance eligibility before scores. Do not average every score or tune selection on transfer outcomes. Failed measures remain diagnostic evidence.
+Gaussian67 uses the recorded V2 train-only floor `max(target std, 0.05 * pooled training std, 1e-6)` and equal E3 family means of `exp(-z²/2)`, not E3's near-zero std replacement. Logistic93 uses fixed C=1, balanced, train-only variance/scaling, max_iter=5000; lbfgs is an implementation choice, not a previously fixed solver. RMS imports frozen behavior; the two event-profile cosines stay separate.
 
-**Artifacts:** fit/scoring provenance, fold predictions, ranking/agreement/content-dependence report and objective eligibility table. **Estimate:** MEDIUM; 3–4 passes; fold-scoped CPU fitting/cached scoring, no transfer search; requires V2-01/V2-03, optional V2-02 features. Extraction caching may proceed independently. Stop for review and candidate selection.
+25 outer-training bundles; 750 real held-out observations from 150 pieces/87 works; 300 exactly task-aligned E2/E3 pairs and 300 target-directed source-self references. All 150 source custom93 vectors exactly match the frozen cache. All style scores are defined/nondegenerate, all source-self deltas zero. Definitive audit passed in 348.13 s; all 3,573 protected files preserved. Artifacts: `experiments/research_v2_04_2026-10-05/style_verified`.
+
+| Measure | Work-balanced ranking | Clustered 95% CI | E3 positive mean directions | E3 negative / null tasks |
+|---|---:|---|---:|---|
+| rms67 | 0.554152 | [0.500890, 0.610256] | 6/6 | 10/300; 32/300 |
+| gaussian67 | 0.558248 | [0.508220, 0.610659] | 6/6 | 17/300; 32/300 |
+| logistic93 | 0.823703 | [0.768912, 0.877364] | 6/6 | 57/300; 45/300 |
+| onset_duration | 0.397947 | [0.337051, 0.456813] | 5/6 | 123/300; 46/300 |
+| time_pitch | 0.697950 | [0.629007, 0.766048] | 4/6 | 66/300; 92/300 |
+
+All five ranking CI lower bounds clear 1/3, but onset-duration is marginal (0.337051). Logistic93 and time-pitch have the strongest held-out ranking here. E3 positive mean directions are 6/6 for RMS/Gaussian/logistic, 5/6 for onset-duration and 4/6 for time-pitch; several direction CIs cross zero. E2 has negative means in all six directions under RMS/Gaussian/event profiles, but logistic has five positive means. These definitions disagree materially; no objective is selected.
+
+Saved-MIDI RMS agrees with historical E3 gain within 1e-10 for 287/300 outputs. Thirteen serialized identity fallbacks across seven works share V2-03 Skyline reselection discrepancies (max difference 0.002693). These remain explicit diagnostics; no selector/output/delta is repaired and no threshold is tuned. Source-self identity and serialized-fallback null rates remain distinct.
+
+RMS/Gaussian share the 67-component representation, but their predeclared variance policies differ: link function and variance handling are not isolated separately. Logistic93/historical RF share corpus/custom93 and are separate held-out evidence, not fully independent. Event profiles are all-piano adaptations using fixed four-quarter-beat windows; 117/150 sources contain non-4/4 meter and 65 have meter changes. Time-pitch ignores global transposition/duration; onset-duration has weak ranking and frequent negative E3 movement. No perceptual validity or fresh untouched confirmatory test is claimed.
+
+Review ranking/clustered uncertainty, spread/missingness, determinism, direction consistency, null/negative rates, agreement structure, leakage and interpretability together. No single scalar promotes a candidate; failed candidates remain diagnostic evidence. **Stop for V2-04 review; no V2-05, full E1c or push.**
+
+Reproduce: `.venv/Scripts/python.exe -B tools/style_audit.py --output experiments/<fresh-style-audit-directory>`. No future objective chosen.
 
 ### V2-05 — objective pilot — SHOULD, provisional and planning only
 
 **Reason:** test eligible E1d objectives under exact protected melody and equal bounded compute. **Read:** completed E1d/eligibility and content contract, frozen E3 engine/feasibility, baseline artifacts. **Allowed later:** external adapter/runner/config and tests/artifacts. Prefer zero-transposition enforcement outside frozen search. No duplicated engine. E3 source changes require demonstrated adapter insufficiency, separate minimal-change review, unchanged old default and regression tests.
 
-**Acceptance:** after E1d and another review choose up to two eligible candidates; no fixed RMS67/Gaussian67/classifier93 pilot list. Require leakage-safe fit, finite/nondegenerate/deterministic scores and grouped held-out target-ranking clustered CI lower bound above chance (1/3). If none passes, NO-GO without transfer optimization. Predeclare source works, seeds, six directions, budget and exact-pitch/onset/note-off/identifiable-duration constraints, with distinct same-tick event ordering diagnostic; reject/log nonzero transposition. Report identity/frozen paired baselines, content/style separately, evaluator dependence and failures.
+**Acceptance:** after E1d and another review choose up to two eligible candidates; no fixed RMS67/Gaussian67/classifier93 pilot list. Require leakage-safe fit and review finite/nondegenerate/deterministic scores, held-out ranking/clustered uncertainty, direction consistency, agreement structure and interpretability together. Clearly-above-chance ranking is strong evidence, not the sole promotion criterion. If none passes, NO-GO without transfer optimization. Predeclare source works, seeds, six directions, budget and exact-pitch/onset/note-off/identifiable-duration constraints, with distinct same-tick event ordering diagnostic; reject/log nonzero transposition. Report identity/frozen paired baselines, content/style separately, evaluator dependence and failures.
 
 **Artifacts:** reviewed candidate selection and protocol, measured pilot budget, new outputs/reports under new IDs. **Estimate:** complexity/passes finalized after E1d; six-direction cost measured before launch; requires V2-04 completion and review, cannot parallelize with candidate selection. Non-goals: automatic ablation, shared E3 refactor or neural tuning.
 

@@ -1,6 +1,6 @@
 # EXPERIMENT_REGISTRY — frozen evidence and proposed Research V2 experiments
 
-Updated 2026-10-04. Experiment identifiers describe scientific protocols; Research V2 does not create a parallel Python implementation tree. V2-01, V2-03 and the separately authorized V2-02 feature feasibility are complete. Stop for V2-02 review; full E1c/V2-04/V2-05 remain unstarted. No frozen evidence is rewritten or silently rerun under an existing schema.
+Updated 2026-10-05. Experiment IDs describe scientific protocols within the existing implementation tree. V2-01 through V2-04 are complete. Stop for V2-04 review; full E1c/V2-05 remain unstarted. No frozen evidence is rewritten or silently rerun under an existing schema.
 
 ## Frozen identities
 
@@ -46,13 +46,27 @@ Audit the 600 frozen E2/E3 outputs without generation. Separate protected melody
 
 Completed with all 600 frozen outputs and 150 source-self identity references under `v2-03.content.1`. See [V2_03_COMPLETION.md](V2_03_COMPLETION.md) and `experiments/research_v2_03_2026-10-04/content_verified`. The original source mask is protected; reselected output Skyline is diagnostic only. Observable on/off retention, identifiable durations/order, structural/technical invariants and protected velocity are separately reported. Soft harmonic/phrase tolerances and an aggregate content scalar were not invented. Existing test tiers and frozen E1-E4 imports remain unchanged.
 
-## E1d — competing style measurements (V2-04, proposed)
+## E1d — competing style measurements (V2-04, complete; stop for review)
 
-Compare named train-only RMS67, Gaussian67, classifier93 and structurally distinct event-profile candidates; this is a candidate evaluation set, not the future transfer pilot selection. Optional relative/StyleRank/sequential extensions require bounded feasibility. Frozen folds govern fitting, scaling, sparse-vocabulary construction, thresholds and target/counterexample populations. Score real held-out works, identities and frozen E2/E3 outputs. Report target ranking, direction effects, score variance, objective/evaluator agreement and content dependence, clustered by original work and paired where appropriate.
+Schemas `v2-04.style.1` / `v2-04.audit.1`. Fixed RMS67, Gaussian67 (recorded V2 floor), logistic93 (fixed C=1/balanced/max_iter=5000, train-only variance/scaling; lbfgs implementation choice), separate onset-duration/time-pitch cosines. Protocol: [V2_04_PROTOCOL.md](V2_04_PROTOCOL.md); completion: [V2_04_COMPLETION.md](V2_04_COMPLETION.md). No composite, musif dependency, threshold/weight tuning, representation/model selection or optimizer. Every fit persists train/forbidden sample/group/hash identities and learned parameters before evaluation. RF/logistic are shared-corpus/custom93 dependent.
 
-RF is a separate held-out evaluator, not necessarily an independent style definition because its corpus/features overlap with candidate measures. Event profiles add a more distinct measurement perspective. Do not use one fitted classifier as objective and sole evaluator.
+25 outer-training bundles; 750 real held-out observations from 150 pieces/87 works; 300 exactly task-aligned E2/E3 pairs and 300 target-directed source-self references. All 150 source custom93 vectors exactly match the frozen cache. All style scores are defined/nondegenerate, all source-self deltas zero. Definitive audit passed in 348.13 s; all 3,573 protected files preserved. Artifacts: `experiments/research_v2_04_2026-10-05/style_verified`.
 
-Predeclare objective eligibility before scoring: leakage-safe fitting; finite, nondegenerate scores; deterministic behavior; grouped held-out target-ranking balanced accuracy with clustered 95% CI lower bound above chance (1/3 for three composers). Fix ranking/tie/CI procedures in the E1d protocol before running it. Failed candidates remain diagnostic evidence, not optimization targets. These criteria do not prove perceptual validity.
+| Measure | Work-balanced ranking | Clustered 95% CI | E3 positive mean directions | E3 negative / null tasks |
+|---|---:|---|---:|---|
+| rms67 | 0.554152 | [0.500890, 0.610256] | 6/6 | 10/300; 32/300 |
+| gaussian67 | 0.558248 | [0.508220, 0.610659] | 6/6 | 17/300; 32/300 |
+| logistic93 | 0.823703 | [0.768912, 0.877364] | 6/6 | 57/300; 45/300 |
+| onset_duration | 0.397947 | [0.337051, 0.456813] | 5/6 | 123/300; 46/300 |
+| time_pitch | 0.697950 | [0.629007, 0.766048] | 4/6 | 66/300; 92/300 |
+
+All five ranking CI lower bounds clear 1/3, but onset-duration is marginal (0.337051). Logistic93 and time-pitch have the strongest held-out ranking here. E3 positive mean directions are 6/6 for RMS/Gaussian/logistic, 5/6 for onset-duration and 4/6 for time-pitch; several direction CIs cross zero. E2 has negative means in all six directions under RMS/Gaussian/event profiles, but logistic has five positive means. These definitions disagree materially; no objective is selected.
+
+Saved-MIDI RMS agrees with historical E3 gain within 1e-10 for 287/300 outputs. Thirteen serialized identity fallbacks across seven works share V2-03 Skyline reselection discrepancies (max difference 0.002693). These remain explicit diagnostics; no selector/output/delta is repaired and no threshold is tuned. Source-self identity and serialized-fallback null rates remain distinct.
+
+RMS/Gaussian share the 67-component representation, but their predeclared variance policies differ: link function and variance handling are not isolated separately. Logistic93/historical RF share corpus/custom93 and are separate held-out evidence, not fully independent. Event profiles are all-piano adaptations using fixed four-quarter-beat windows; 117/150 sources contain non-4/4 meter and 65 have meter changes. Time-pitch ignores global transposition/duration; onset-duration has weak ranking and frequent negative E3 movement. No perceptual validity or fresh untouched confirmatory test is claimed.
+
+Review ranking/clustered uncertainty, spread/missingness, determinism, direction consistency, null/negative rates, agreement structure, leakage and interpretability together. No single scalar promotes a candidate; failed candidates remain diagnostic evidence. **Stop for V2-04 review; no V2-05, full E1c or push.**
 
 ## Objective pilot — V2-05 (SHOULD, provisional)
 

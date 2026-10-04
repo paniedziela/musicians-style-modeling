@@ -1,6 +1,6 @@
 # RESEARCH_CONTEXT — Research V2
 
-Updated 2026-10-04. Research V2 is a research/experiment phase within the current implementation tree. E1–E4 are frozen evidence, not the final architecture. V2-01, V2-03 and the separately authorized V2-02 feature feasibility are complete. Stop for V2-02 review; full E1c/V2-04/V2-05 remain unstarted. See [V2_02_COMPLETION.md](V2_02_COMPLETION.md) for feature findings and limitations. See [V2_03_COMPLETION.md](V2_03_COMPLETION.md) for the content contract, measurements and verification.
+Updated 2026-10-05. Research V2 remains within the existing tree. E1–E4 are frozen evidence. V2-01 through V2-04 are complete; stop after E1d for review. No objective selected; full E1c/V2-05 unstarted. See [V2_04_COMPLETION.md](V2_04_COMPLETION.md) and [V2_04_PROTOCOL.md](V2_04_PROTOCOL.md). Completed [V2_02_COMPLETION.md](V2_02_COMPLETION.md) / [V2_03_COMPLETION.md](V2_03_COMPLETION.md) remain unchanged.
 
 ## Research question and evidence
 
@@ -36,7 +36,27 @@ Style is a corpus-relative pattern of pitch/register, rhythm/metrical placement,
 
 The E1b RF is a **separate held-out evaluator** of E3 output, fitted on fold training works. It is not necessarily a fully independent definition of style: the corpus and overlapping feature families create dependence even when the fitted model differs. If a classifier becomes an objective, separate its fitting/evaluation roles and report remaining corpus/representation dependence explicitly. A distinct event-profile measurement (L0074) is useful precisely because it changes the representation and measurement structure; even that does not establish perceptual validity alone.
 
-E1d should compare current standardized RMS profiles, Gaussian profiles, train-only classifier affinity and event profiles on real held-out works, identities and frozen E2/E3 outputs. Relative/StyleRank/sequential measures are bounded extensions. Do not arbitrarily average all scores. Report target ranking, direction effects, degeneracy and agreement alongside content. Failed metrics remain diagnostic evidence and need not consume transfer optimization compute.
+V2-04 completed the fixed E1d comparison: RMS67, Gaussian67, logistic93, onset-duration cosine and time-pitch cosine, all fit only on matching outer train partitions. No musif/full E1c, metric combination or model selection.
+
+25 outer-training bundles; 750 real held-out observations from 150 pieces/87 works; 300 exactly task-aligned E2/E3 pairs and 300 target-directed source-self references. All 150 source custom93 vectors exactly match the frozen cache. All style scores are defined/nondegenerate, all source-self deltas zero. Definitive audit passed in 348.13 s; all 3,573 protected files preserved. Artifacts: `experiments/research_v2_04_2026-10-05/style_verified`.
+
+| Measure | Work-balanced ranking | Clustered 95% CI | E3 positive mean directions | E3 negative / null tasks |
+|---|---:|---|---:|---|
+| rms67 | 0.554152 | [0.500890, 0.610256] | 6/6 | 10/300; 32/300 |
+| gaussian67 | 0.558248 | [0.508220, 0.610659] | 6/6 | 17/300; 32/300 |
+| logistic93 | 0.823703 | [0.768912, 0.877364] | 6/6 | 57/300; 45/300 |
+| onset_duration | 0.397947 | [0.337051, 0.456813] | 5/6 | 123/300; 46/300 |
+| time_pitch | 0.697950 | [0.629007, 0.766048] | 4/6 | 66/300; 92/300 |
+
+All five ranking CI lower bounds clear 1/3, but onset-duration is marginal (0.337051). Logistic93 and time-pitch have the strongest held-out ranking here. E3 positive mean directions are 6/6 for RMS/Gaussian/logistic, 5/6 for onset-duration and 4/6 for time-pitch; several direction CIs cross zero. E2 has negative means in all six directions under RMS/Gaussian/event profiles, but logistic has five positive means. These definitions disagree materially; no objective is selected.
+
+Saved-MIDI RMS agrees with historical E3 gain within 1e-10 for 287/300 outputs. Thirteen serialized identity fallbacks across seven works share V2-03 Skyline reselection discrepancies (max difference 0.002693). These remain explicit diagnostics; no selector/output/delta is repaired and no threshold is tuned. Source-self identity and serialized-fallback null rates remain distinct.
+
+RMS/Gaussian share the 67-component representation, but their predeclared variance policies differ: link function and variance handling are not isolated separately. Logistic93/historical RF share corpus/custom93 and are separate held-out evidence, not fully independent. Event profiles are all-piano adaptations using fixed four-quarter-beat windows; 117/150 sources contain non-4/4 meter and 65 have meter changes. Time-pitch ignores global transposition/duration; onset-duration has weak ranking and frequent negative E3 movement. No perceptual validity or fresh untouched confirmatory test is claimed.
+
+Review ranking/clustered uncertainty, spread/missingness, determinism, direction consistency, null/negative rates, agreement structure, leakage and interpretability together. No single scalar promotes a candidate; failed candidates remain diagnostic evidence. **Stop for V2-04 review; no V2-05, full E1c or push.**
+
+Gaussian uses the recorded train-only floor `max(target std, 0.05 * pooled training std, 1e-6)`; RMS retains its frozen std replacement. Logistic C=1/balanced/train-only variance/scaling/max_iter=5000 are recorded settings, with lbfgs an implementation choice. The duration-to-velocity reassociation synthetic counterexample shows why serialized RMS fallback movement can differ while custom93/all-note event profiles stay unchanged. All correlations/undefined cases and six directions remain in `style_verified/summary.json`. StyleRank/sequential extensions and V2-05 remain separate future decisions.
 
 ## Leakage-safe representation research
 
@@ -48,7 +68,7 @@ Matched MusicXML warrants a separate score-aware E1m investigation with musif/Pa
 
 ## Architecture and boundaries
 
-Reuse current representation, extraction and search where appropriate. V2-01 adds `asset_paths.py`, `provenance.py` and `research_audit.py`; V2-03 adds only `content_metrics.py` and the explicit `content_audit.py` runner. V2-02 adds concrete custom93/musif `feature_backends` and the explicit `feature_feasibility.py` runner only. `style_metrics` remains reserved for separately authorized V2-04. No `musicians_style.v2`, duplicated E1–E4 implementation, speculative refactor or reverse dependency from frozen packages.
+Reuse current representation, extraction and search where appropriate. V2-01 adds `asset_paths.py`, `provenance.py` and `research_audit.py`; V2-03 adds only `content_metrics.py` and the explicit `content_audit.py` runner. V2-02 adds concrete custom93/musif `feature_backends` and the explicit `feature_feasibility.py` runner only. `style_metrics.py` and `style_audit.py` now serve only concrete V2-04 needs, with no registry or reverse imports. No `musicians_style.v2`, duplicated E1–E4 implementation, speculative refactor or reverse dependency from frozen packages.
 
 Future V2-05 starts only after E1d completion and another review. Prefer an external adapter/runner around frozen E3 to enforce zero transposition and exact protected pitches. Change shared E3 code only if external enforcement proves insufficient, with a separately reviewed minimal patch, unchanged old default and regression coverage. No objective candidates are selected for transfer now.
 
@@ -56,4 +76,4 @@ Future V2-05 starts only after E1d completion and another review. Prefer an exte
 
 Historical plans/reports remain unchanged; STATUS.md, this context, the matrix, registry and roadmap are the current entry points. Local results and checkpoints are ignored by Git but remain evidence. Record unavailable or contradictory historical provenance instead of fabricating a historical code/environment snapshot.
 
-Default pytest runs fast unit/smoke checks against checkout source. Property tests use explicit development/full profiles; integration/regression workflows are explicit. Dataset-wide scientific checks produce fresh audit artifacts. V2-01 remains infrastructure verification; V2-03 adds content measurements only. V2-02 performs only the nine-sample feature pilot and explicit custom93 equivalence audit. No model fitting, full E1c, transfer generation or change to frozen protocols was performed.
+Default pytest runs fast unit/smoke checks against checkout source. Property tests use explicit development/full profiles; integration/regression workflows are explicit. Dataset-wide scientific checks produce fresh audit artifacts. V2-01 remains infrastructure verification; V2-03 adds content measurements only. V2-02 performs only the nine-sample feature pilot and explicit custom93 equivalence audit. V2-04 subsequently fitted only fixed fold-local style measures; no full E1c selection, transfer generation or change to frozen E1–E4/V2-01–03 protocols was performed.
