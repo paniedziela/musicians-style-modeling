@@ -1,0 +1,27 @@
+# V2-04 pre-scoring protocol — 2026-10-05
+
+E1d style-measure audit only. This protocol is recorded before held-out scoring. No E1c selection, generator, optimization, composite score or V2-05. Use canonical 150 samples/87 works, all frozen 5×5 outer folds. Validate outer/inner sample/group/hash disjointness and coverage before fitting. Inner splits are validated but unused: no selection. Real works contribute 750 held-out observations, averaged within original work for uncertainty. Score 300 exactly task-ID/metadata-aligned E2/E3 pairs with matching repeat-0 fits. Identity = source-self scores for those 300 target-directed tasks (150 unique sources).
+
+Every affinity increases with closeness. Movement = output minus source affinity to the same target; also report source drop and target-minus-source margin movement. Never average unrelated measures. Hash-join V2-03 exact-pitch onset retention as a separate diagnostic; content never enters style fitting/scoring.
+
+## Fixed measures
+
+- RMS67: frozen E3 representation/profile/distance; negative mean of pitch/rhythm/texture RMS z distances. Retain population std handling (std < 1e-6 → 1.0), train sample means and exact 67-component schema.
+- Gaussian67: same 67 components and target-composer train means; exp(-z²/2), mean within each E3 family, then equal family mean. Previously recorded V2 floor, explicitly supplied in this session: max(target-composer population std, 0.05 × pooled outer-training population std, 1e-6). Pooled includes all composers in that outer training partition. V2 thesis adaptation, not frozen E3 behavior, density or likelihood. No covariance/weight tuning.
+- Logistic93: frozen custom93; train-only VarianceThreshold(0), StandardScaler, logistic with recorded C=1, balanced classes, max_iter=5000. Class probability affinity. lbfgs/L2, tol=1e-4, seed 1729 are implementation choices/defaults; prior record did not fix solver. No grid, selection, calibration, imputation or threshold tuning. Nonfinite train data fails.
+- Onset-duration: separate 24×12 profile on all parsed piano notes; quarter-beat onset modulo four, six bins/beat; durations six bins/beat in [0,2], >=2 in last bin, nonpositive in first with diagnostics. Piece L1 normalization; composer prototype = equal-work mean of within-work piece profiles in train. Cosine; empty query/prototype undefined.
+- Time-pitch: separate 24×41 all-note-pair profile; forward onset lag [0,4) quarter-beats, six bins/beat; signed later-minus-earlier intervals -20..20. Pitch overflow excluded/count recorded; lag >=4 excluded. Simultaneous unordered pairs emit both signs; duplicate events retain multiplicity. Normalize/prototype/cosine as above; empty undefined.
+
+Event profiles borrow audited L0074 Groove2Groove principles, with explicit piano adaptation: all notes rather than BIAB accompaniment/chord parts; fixed four quarter-beats in every meter; no velocity/instrument features; no exact upstream-reproduction claim. Record meter/changes, duration/interval overflow, empties and FIFO-parser pairing limitations. Time-pitch is globally transposition invariant. RMS reselects output Skyline as frozen E3 does; V2-03 protects the original mask separately.
+
+Persist protocol/input hashes and every fit before held-out evaluation. Save train/forbidden identities, means/raw/effective std, Gaussian pooled std, event prototypes, variance/scaler, logistic coefficients/classes/iterations/warnings and serialized hashes. Require exact source custom93/schema/cache equivalence, frozen input snapshot equality and E3 train IDs/profile fingerprints. Historical E3 gain and RF deltas remain named frozen evidence.
+
+## Reporting and uncertainty
+
+Ranking = max affinity among three composers. Abs difference <=1e-12 ties, fractional 1/k correct credit for k maxima; missing composer score makes ranking undefined. Null abs(delta)<=1e-12; negative delta<-1e-12. Fixed numerical conventions, not musical thresholds. Report true-versus-each-other margins/wins, ties/missingness.
+
+Ranking: average sample/repeat credits within work, works within composer, then macro composer mean. Chance 1/3. Percentile 95% bootstrap: 2,000 draws, seed 1729, resample works within composer (30/28/29 works). Movement/rates: equal-work mean of within-work tasks, unstratified work bootstrap, same draws/seed. Include raw means and explicit total/defined/undefined row/work counts.
+
+Pearson/Spearman: complete work-mean paired movements with work bootstrap intervals; retain row coefficients. Separate E2/E3/identities and all six directions. Real affinity agreement uses true-composer scores and separately each candidate composer, avoiding averaging three probabilities into a constant. <3 work pairs or range<=1e-12 is undefined; record degenerate bootstrap draws. E3 internal objective applies only to E3; E2/identity explicitly undefined. RF/logistic are separate held-out evaluators/measures with shared-corpus/custom93 dependence, never fully independent evidence.
+
+Promotion requires review of ranking/clustered uncertainty, spread/missingness, determinism, direction consistency, negative/null rates, agreement structure, leakage and interpretability together. No automatic scalar selection; failed candidates retained. No outer-result representation/hyperparameter selection. Intervals descriptive/conditional on fits, no refitting/multiplicity correction. E3 gains selection-dependent because E3 already optimized RMS67. Corpus discrimination is not perceptual validity. V2-05 requires another review.
