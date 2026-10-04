@@ -1,8 +1,14 @@
 # STATUS — Research V2 entry point
 
-Updated **2026-10-04** after authorized documentation + V2-01 implementation. **Stop for review: no commit/push, no V2-02 launch.** The earlier Plan Mode limitation is superseded; files have now changed. Research V2 is an experiment phase, with no parallel package namespace.
+Updated **2026-10-04** after the separately authorized **V2-03 content audit only**. V2-01 remains complete. **Stop for review after V2-03; local commits authorized, no push. V2-02, V2-04 and V2-05 were not started.** Research V2 is an experiment phase, with no parallel package namespace.
 
-## Checkout and sources
+## V2-03 completion
+
+All 300 E2 outputs, 300 E3 outputs and 150 original source-self identity references were measured explicitly. The original source Skyline mask is retained. Observable protected on/off retention is separate from ambiguous voice duration/order; structural/technical checks and protected velocity have their own categories. Historical E3 uses its recorded allowed transposition and original same-tick order interpretation; the V2 exact-pitch measurement uses zero shift and strict observable event order. Frozen E1-E4 do not import the new modules.
+
+See [V2_03_COMPLETION.md](research/V2_03_COMPLETION.md) for final findings, exact files, commands/results, limitations and local commit details. Scientific artifacts live in `experiments/research_v2_03_2026-10-04/content_verified`; run `tools/content_audit.py` with a fresh output directory to reproduce them. The pass began from clean `refactor/research-v2` at `fdf529f`, following V2-01 commits `d6d3330`, `2204c86`, `fdf529f`. The V2-01 snapshot below remains historical evidence.
+
+## V2-01 recorded checkout and sources
 
 | Source | Verified state |
 |---|---|
@@ -59,12 +65,12 @@ Skipped deliberately: full-budget property execution, new feature/content extrac
 
 ## Next review and bounded backlog
 
-V2-01 is complete after final verification. Review its diff, setup choice, tier organization and artifacts before further work. No deviations in scientific scope; the explicit editable environment change is recorded, and full properties were deferred as the revised verification plan permits.
+V2-01 and the separately authorized V2-03 are complete. Review V2-03 before further work. No feature feasibility, style-measure fitting or objective search was launched.
 
-1. V2-01 — roots/provenance/read-only evidence audit/test tiers: this pass only, MUST, MEDIUM.
+1. V2-01 — roots/provenance/read-only evidence audit/test tiers: COMPLETE.
 2. V2-02 — nine-sample feature feasibility: planning only, MUST, MEDIUM.
-3. V2-03 — 600-output content audit: planning only, MUST, MEDIUM.
+3. V2-03 — 600-output content audit plus 150 identities: COMPLETE, STOP FOR REVIEW.
 4. V2-04 — E1d competing held-out style measurements: planning only, MUST, MEDIUM.
 5. V2-05 — objective pilot: provisional SHOULD, candidates/complexity/budget after E1d validity and another review.
 
-ROADMAP gives exact files, acceptance tests, artifacts, agent passes, compute cost, blocking dependencies and parallelism. Introduce capability modules only when those tasks need them. Do not start V2-02–V2-05, commit or push in this pass.
+ROADMAP retains the bounded backlog. Introduce capability modules only when authorized tasks need them. Do not start V2-02, V2-04 or V2-05, and do not push.

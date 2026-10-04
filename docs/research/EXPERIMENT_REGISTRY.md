@@ -1,6 +1,6 @@
 # EXPERIMENT_REGISTRY — frozen evidence and proposed Research V2 experiments
 
-Updated 2026-10-04. Experiment identifiers describe scientific protocols; Research V2 does not create a parallel Python implementation tree. Only V2-01 is authorized and implemented in this pass. No frozen evidence is rewritten or silently rerun under an existing schema.
+Updated 2026-10-04. Experiment identifiers describe scientific protocols; Research V2 does not create a parallel Python implementation tree. V2-01 and the separately authorized V2-03 content audit are complete. Stop for V2-03 review; V2-02/V2-04/V2-05 remain unstarted. No frozen evidence is rewritten or silently rerun under an existing schema.
 
 ## Frozen identities
 
@@ -34,9 +34,11 @@ V2-02 begins with nine predeclared training samples and two extraction attempts 
 
 Compare MIDI and score-aware extraction on matched 150 identities/work groups with the same grouped protocol. musif/Partitura dependencies and notation-derived features are versioned separately. GO requires usable notation and bounded cost; missing XML and differences in coverage are explicit. No automatic launch during V2-01.
 
-## Content audit — V2-03 (proposed)
+## Content audit — V2-03 (complete; stop for review)
 
 Audit the 600 frozen E2/E3 outputs without generation. Separate protected melody identity, structural/technical invariants, velocity invariance of the current transform, soft harmonic/structure preservation and transformable accompaniment. Compare semantic on/off masks as well as parsed notes for overlaps. Report historical E3 transposition explicitly; new policy is exact-pitch. Produce per-output diagnostics/hashes and direction/cluster summaries outside pytest. Synthetic identity, deliberate corruption, overlap and transposition cases belong in small tests.
+
+Completed with all 600 frozen outputs and 150 source-self identity references under `v2-03.content.1`. See [V2_03_COMPLETION.md](V2_03_COMPLETION.md) and `experiments/research_v2_03_2026-10-04/content_verified`. The original source mask is protected; reselected output Skyline is diagnostic only. Observable on/off retention, identifiable durations/order, structural/technical invariants and protected velocity are separately reported. Soft harmonic/phrase tolerances and an aggregate content scalar were not invented. Existing test tiers and frozen E1-E4 imports remain unchanged.
 
 ## E1d — competing style measurements (V2-04, proposed)
 

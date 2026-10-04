@@ -1,6 +1,6 @@
 # ROADMAP — revised Research V2 implementation boundary
 
-Updated 2026-10-04. **This pass applies documentation and V2-01 only. Stop for review afterward; no commit, push or V2-02 launch.** The earlier Plan Mode limitation is superseded by explicit implementation authorization. Research V2 is an experiment phase, not `musicians_style.v2` or a second implementation tree.
+Updated 2026-10-04. **V2-01 is complete; the separately authorized V2-03 content audit is complete. Stop for review after V2-03; local commits authorized, no push. Do not start V2-02, V2-04 or V2-05.** Research V2 is an experiment phase, not `musicians_style.v2` or a second implementation tree. The remaining backlog is unchanged; the V2-01 boundary below is historical.
 
 ## Scope and architecture
 
@@ -62,13 +62,15 @@ Wrap custom93 without duplication. Select nine training samples: first three lex
 
 **Artifacts:** pilot manifest, extractor schema/cache/failure records, determinism comparison and feasibility report. **Estimate:** MEDIUM; 2–3 passes; 18 pilot attempts plus explicit cache audit, no training. Requires V2-01 and isolated MIR dependencies. May run alongside V2-03 after separate review. Stop before full E1c or another backend.
 
-### V2-03 — content audit — MUST, planning only
+### V2-03 — content audit — COMPLETE, stop for review
 
-**Reason:** quantify preservation independently from style before objective comparison. **Read:** frozen MIDI/event handling and E3 melody/transposition constraints; E2/E3 outputs; L0074/L0185/L0208. **Allowed later:** concrete `src/musicians_style/content_metrics` functions and read-only content runner, synthetic tests, new artifacts.
+**Reason:** quantify preservation independently from style before objective comparison. **Read:** frozen MIDI/event handling and E3 melody/transposition constraints; E2/E3 outputs; L0074/L0185/L0208. **Implemented:** concrete `src/musicians_style/content_metrics.py`, `content_audit.py`, thin `tools/content_audit.py`, focused synthetic tests and new artifacts. No reverse dependencies or frozen source/configuration/result/report changes.
 
 **Acceptance:** protected original pitch/onset/duration/note-off/order exact for new policy; structural meter/metadata/format/resolution/channel checks separate; velocity reported as transformation invariant, not assumed fundamental melody content. Test identity/corruption, overlaps and event-order ambiguity, historical relative/transposed protection and strict new policy. Audit all 600 frozen outputs explicitly, with per-output success/failure and clustered direction summaries. Preserve E3's original interpretation and all inputs.
 
 **Artifacts:** metric contract/version, per-output audit/ambiguity records and report. **Estimate:** MEDIUM; 2–3 passes; parsing/measurement of 600 outputs, no generation. Requires V2-01; may run alongside V2-02. Non-goals: optimizer changes, synthetic regeneration, objective selection.
+
+**Completion:** all 600 frozen outputs plus 150 original identity references audited explicitly. Final files, commands/results, findings, ambiguity limits and artifact locations: [V2_03_COMPLETION.md](V2_03_COMPLETION.md). Reproduce with `.venv/Scripts/python.exe -B tools/content_audit.py --output experiments/<fresh-content-audit-directory>`; roots and ambient import guard follow V2-01. The fast/property/regression tiers are unchanged. No V2-02 work ran alongside this audit. **STOP for review after V2-03.**
 
 ### V2-04 — E1d style-measure comparison — MUST, planning only
 

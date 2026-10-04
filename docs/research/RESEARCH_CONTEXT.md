@@ -1,6 +1,6 @@
 # RESEARCH_CONTEXT — Research V2
 
-Updated 2026-10-04. Research V2 is a research/experiment phase within the current implementation tree. E1–E4 are frozen evidence, not the final architecture. The authorized implementation boundary is documentation and V2-01; see ROADMAP.md for subsequent review gates.
+Updated 2026-10-04. Research V2 is a research/experiment phase within the current implementation tree. E1–E4 are frozen evidence, not the final architecture. V2-01 and the separately authorized V2-03 content audit are complete. Stop for V2-03 review; V2-02/V2-04/V2-05 remain unstarted. See [V2_03_COMPLETION.md](V2_03_COMPLETION.md) for the content contract, measurements and verification.
 
 ## Research question and evidence
 
@@ -25,7 +25,7 @@ Content and style are separate axes. Version each experiment's melody selector a
 
 Historical E3 allowed global transposition up to ±6 semitones while preserving its selected melody relative to that transposition. Preserve that baseline and its reported interpretation. The future exact-pitch V2 policy does not retroactively make E3 a failed exact-pitch experiment. An optional transposition-policy ablation may be proposed later.
 
-Overlapping same-pitch MIDI events can make parsed note tuples ambiguous. V2-03 must compare protected event identity/order and explain pairing ambiguity, rather than asserting pitch/onset/duration equality from one arbitrary pairing. Literal tuple comparison flagged 17 historical cases where semantic on/off protection was retained; two outputs added higher notes at protected onsets. Record both limitations. Note-count, polyphony and piece duration are validity/structure measurements, not substitutes for melody identity.
+Overlapping same-pitch MIDI events can make parsed note tuples ambiguous. V2-03 compares the original protected on/off events with multiplicity and observable order, while marking unidentifiable durations and simultaneous occurrence/order as ambiguous. Nineteen reselected-output Skyline discrepancies comprise 17 pairing/reselection cases and two higher-note cases; the original protected tuples remain present under historical transposition. Unmatched raw events remain explicit undefined cases even if the frozen parser drops them. Historical E3 permits same-tick permutations; strict literal order is assessed separately for V2. Note-count, polyphony and piece duration are validity/structure measurements, not substitutes for melody identity.
 
 ## Style definitions and evaluator dependence
 
@@ -45,7 +45,7 @@ Matched MusicXML warrants a separate score-aware E1m investigation with musif/Pa
 
 ## Architecture and boundaries
 
-Reuse current representation, extraction and search where appropriate. Add `asset_paths.py`, `provenance.py` and `research_audit.py` for V2-01. Introduce `feature_backends`, `content_metrics` and `style_metrics` only when V2-02, V2-03 and V2-04 actually need them. No `musicians_style.v2`, duplicated E1–E4 implementation, speculative refactor or reverse dependency from frozen packages.
+Reuse current representation, extraction and search where appropriate. V2-01 adds `asset_paths.py`, `provenance.py` and `research_audit.py`; V2-03 adds only `content_metrics.py` and the explicit `content_audit.py` runner. Introduce `feature_backends` and `style_metrics` only when separately authorized V2-02 and V2-04 need them. No `musicians_style.v2`, duplicated E1–E4 implementation, speculative refactor or reverse dependency from frozen packages.
 
 Future V2-05 starts only after E1d completion and another review. Prefer an external adapter/runner around frozen E3 to enforce zero transposition and exact protected pitches. Change shared E3 code only if external enforcement proves insufficient, with a separately reviewed minimal patch, unchanged old default and regression coverage. No objective candidates are selected for transfer now.
 
@@ -53,4 +53,4 @@ Future V2-05 starts only after E1d completion and another review. Prefer an exte
 
 Historical plans/reports remain unchanged; STATUS.md, this context, the matrix, registry and roadmap are the current entry points. Local results and checkpoints are ignored by Git but remain evidence. Record unavailable or contradictory historical provenance instead of fabricating a historical code/environment snapshot.
 
-Default pytest runs fast unit/smoke checks against checkout source. Property tests use explicit development/full profiles; integration/regression workflows are explicit. Dataset-wide scientific checks produce fresh audit artifacts. V2-01 is infrastructure verification only: no feature extraction, new content scoring, training, transfer generation or change to frozen protocols.
+Default pytest runs fast unit/smoke checks against checkout source. Property tests use explicit development/full profiles; integration/regression workflows are explicit. Dataset-wide scientific checks produce fresh audit artifacts. V2-01 remains infrastructure verification; V2-03 adds content measurements only. No feature extraction, training, transfer generation or change to frozen protocols was performed.
