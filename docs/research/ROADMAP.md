@@ -1,6 +1,6 @@
 # ROADMAP — revised Research V2 implementation boundary
 
-Updated 2026-10-05. **V2-01 through V2-04 are complete. Stop after the V2-04 E1d audit for review; local commits only, no push. Full E1c and V2-05 remain unstarted.** Research V2 is an experiment phase within the existing implementation tree. The bounded backlog remains unchanged; earlier task boundaries below are historical.
+Updated 2026-10-05. V2-05 fixed-budget objective pilot is complete: 18/18 runs completed; execution/preservation passed=True. Stop after V2-05 for review; no full E1c, outer-test evaluation, larger transfer experiment or push. V2-01 through V2-04 remain preserved. See [V2_05_COMPLETION.md](V2_05_COMPLETION.md) and [V2_05_PROTOCOL.md](V2_05_PROTOCOL.md).
 
 ## Scope and architecture
 
@@ -92,24 +92,30 @@ Gaussian67 uses the recorded V2 train-only floor `max(target std, 0.05 * pooled 
 | onset_duration | 0.397947 | [0.337051, 0.456813] | 5/6 | 123/300; 46/300 |
 | time_pitch | 0.697950 | [0.629007, 0.766048] | 4/6 | 66/300; 92/300 |
 
-All five ranking CI lower bounds clear 1/3, but onset-duration is marginal (0.337051). Logistic93 and time-pitch have the strongest held-out ranking here. E3 positive mean directions are 6/6 for RMS/Gaussian/logistic, 5/6 for onset-duration and 4/6 for time-pitch; several direction CIs cross zero. E2 has negative means in all six directions under RMS/Gaussian/event profiles, but logistic has five positive means. These definitions disagree materially; no objective is selected.
+All five ranking CI lower bounds clear 1/3, but onset-duration is marginal (0.337051). Logistic93 and time-pitch have the strongest held-out ranking here. E3 positive mean directions are 6/6 for RMS/Gaussian/logistic, 5/6 for onset-duration and 4/6 for time-pitch; several direction CIs cross zero. E2 has negative means in all six directions under RMS/Gaussian/event profiles, but logistic has five positive means. These definitions disagree materially; V2-04 did not select an objective. The user subsequently fixed the three V2-05 objectives.
 
 Saved-MIDI RMS agrees with historical E3 gain within 1e-10 for 287/300 outputs. Thirteen serialized identity fallbacks across seven works share V2-03 Skyline reselection discrepancies (max difference 0.002693). These remain explicit diagnostics; no selector/output/delta is repaired and no threshold is tuned. Source-self identity and serialized-fallback null rates remain distinct.
 
 RMS/Gaussian share the 67-component representation, but their predeclared variance policies differ: link function and variance handling are not isolated separately. Logistic93/historical RF share corpus/custom93 and are separate held-out evidence, not fully independent. Event profiles are all-piano adaptations using fixed four-quarter-beat windows; 117/150 sources contain non-4/4 meter and 65 have meter changes. Time-pitch ignores global transposition/duration; onset-duration has weak ranking and frequent negative E3 movement. No perceptual validity or fresh untouched confirmatory test is claimed.
 
-Review ranking/clustered uncertainty, spread/missingness, determinism, direction consistency, null/negative rates, agreement structure, leakage and interpretability together. No single scalar promotes a candidate; failed candidates remain diagnostic evidence. **Stop for V2-04 review; no V2-05, full E1c or push.**
+Review ranking/clustered uncertainty, spread/missingness, determinism, direction consistency, null/negative rates, agreement structure, leakage and interpretability together. No single scalar promotes a candidate; failed candidates remain diagnostic evidence. **V2-04 review boundary was satisfied by the explicit bounded V2-05 authorization; full E1c remains unstarted.**
 
-Reproduce: `.venv/Scripts/python.exe -B tools/style_audit.py --output experiments/<fresh-style-audit-directory>`. No future objective chosen.
+Reproduce: `.venv/Scripts/python.exe -B tools/style_audit.py --output experiments/<fresh-style-audit-directory>`. V2-04 did not select a future objective; the user fixed the V2-05 set after review.
 
-### V2-05 — objective pilot — SHOULD, provisional and planning only
+### V2-05 — fixed-budget objective pilot — COMPLETE, stop for review
 
-**Reason:** test eligible E1d objectives under exact protected melody and equal bounded compute. **Read:** completed E1d/eligibility and content contract, frozen E3 engine/feasibility, baseline artifacts. **Allowed later:** external adapter/runner/config and tests/artifacts. Prefer zero-transposition enforcement outside frozen search. No duplicated engine. E3 source changes require demonstrated adapter insufficiency, separate minimal-change review, unchanged old default and regression tests.
-
-**Acceptance:** after E1d and another review choose up to two eligible candidates; no fixed RMS67/Gaussian67/classifier93 pilot list. Require leakage-safe fit and review finite/nondegenerate/deterministic scores, held-out ranking/clustered uncertainty, direction consistency, agreement structure and interpretability together. Clearly-above-chance ranking is strong evidence, not the sole promotion criterion. If none passes, NO-GO without transfer optimization. Predeclare source works, seeds, six directions, budget and exact-pitch/onset/note-off/identifiable-duration constraints, with distinct same-tick event ordering diagnostic; reject/log nonzero transposition. Report identity/frozen paired baselines, content/style separately, evaluator dependence and failures.
-
-**Artifacts:** reviewed candidate selection and protocol, measured pilot budget, new outputs/reports under new IDs. **Estimate:** complexity/passes finalized after E1d; six-direction cost measured before launch; requires V2-04 completion and review, cannot parallelize with candidate selection. Non-goals: automatic ablation, shared E3 refactor or neural tuning.
+User-fixed RMS67/Gaussian67/logistic93, lexical r00/f00/inner00 validation cohort, all six directions, 18 runs. Common seed1729/population32/generations60/stagnation61, inherited E3 elite/tournament/sigmas; external zero-transpose canonicalization preserves frozen GA code/draws. One inner-training-only fit; time_pitch primary distinct evaluation, onset_duration secondary. No larger experiment or outer-test evaluation. Exact findings/provenance/tests/limitations: [V2_05_COMPLETION.md](V2_05_COMPLETION.md), fixed contract [V2_05_PROTOCOL.md](V2_05_PROTOCOL.md).
 
 ## Later optional work
 
 Full E1c and matched MusicXML E1m follow feasibility review. StyleRank/relative/sequential objectives and a transposition-policy ablation are later bounded proposals. Preserve E4.6 NO-GO; pretrained neural comparisons need separate feasibility/evaluation evidence. No automatic progression through this backlog.
+
+## V2-05 exploratory result
+
+| Objective | Exact observable policy | time_pitch positive / negative / null | time_pitch mean | Optimized mean |
+|---|---:|---|---:|---:|
+| rms67 | 6/6 | 1 / 5 / 0 | -0.022067 | 0.377232 |
+| gaussian67 | 6/6 | 2 / 4 / 0 | -0.026364 | 0.026629 |
+| logistic93 | 6/6 | 0 / 6 / 0 | -0.068912 | 0.139354 |
+
+Definitive artifacts: `experiments/research_v2_05_pilot_2026-10-05`. All comparisons are exploratory, with content ambiguity/evaluator dependence recorded separately. Optimized gains use different scales and cannot rank objectives across metrics. Stop for V2-05 review.

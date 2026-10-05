@@ -1,6 +1,6 @@
 # RESEARCH_CONTEXT — Research V2
 
-Updated 2026-10-05. Research V2 remains within the existing tree. E1–E4 are frozen evidence. V2-01 through V2-04 are complete; stop after E1d for review. No objective selected; full E1c/V2-05 unstarted. See [V2_04_COMPLETION.md](V2_04_COMPLETION.md) and [V2_04_PROTOCOL.md](V2_04_PROTOCOL.md). Completed [V2_02_COMPLETION.md](V2_02_COMPLETION.md) / [V2_03_COMPLETION.md](V2_03_COMPLETION.md) remain unchanged.
+Updated 2026-10-05. V2-05 fixed-budget objective pilot is complete: 18/18 runs completed; execution/preservation passed=True. Stop after V2-05 for review; no full E1c, outer-test evaluation, larger transfer experiment or push. V2-01 through V2-04 remain preserved. See [V2_05_COMPLETION.md](V2_05_COMPLETION.md) and [V2_05_PROTOCOL.md](V2_05_PROTOCOL.md).
 
 ## Research question and evidence
 
@@ -26,7 +26,7 @@ Content and style are separate axes. Version each experiment's melody selector a
 | Harmonic/chroma relation, phrase/section structure | SOFTLY_PRESERVE | Named measurements and predeclared tolerances; no invented aggregate content scalar |
 | Accompaniment pitch, timing, duration, voicing/texture and bounded density | STYLE_TRANSFORMABLE | Subject to protected events, extent and validity budgets |
 
-Historical E3 allowed global transposition up to ±6 semitones while preserving its selected melody relative to that transposition. Preserve that baseline and its reported interpretation. The future exact-pitch V2 policy does not retroactively make E3 a failed exact-pitch experiment. An optional transposition-policy ablation may be proposed later.
+Historical E3 allowed global transposition up to ±6 semitones while preserving its selected melody relative to that transposition. Preserve that baseline and its reported interpretation. The new exact-pitch V2 policy does not retroactively make E3 a failed exact-pitch experiment. An optional transposition-policy ablation may be proposed later.
 
 Overlapping same-pitch MIDI events can make parsed note tuples ambiguous. V2-03 compares the original protected on/off events with multiplicity and observable order, while marking unidentifiable durations and simultaneous occurrence/order as ambiguous. Nineteen reselected-output Skyline discrepancies comprise 17 pairing/reselection cases and two higher-note cases; the original protected tuples remain present under historical transposition. Unmatched raw events remain explicit undefined cases even if the frozen parser drops them. Historical E3 permits same-tick permutations; the completed V2-03 strict literal-order assessment is retained as a diagnostic under the review clarification above. Note-count, polyphony and piece duration are validity/structure measurements, not substitutes for melody identity.
 
@@ -48,15 +48,15 @@ V2-04 completed the fixed E1d comparison: RMS67, Gaussian67, logistic93, onset-d
 | onset_duration | 0.397947 | [0.337051, 0.456813] | 5/6 | 123/300; 46/300 |
 | time_pitch | 0.697950 | [0.629007, 0.766048] | 4/6 | 66/300; 92/300 |
 
-All five ranking CI lower bounds clear 1/3, but onset-duration is marginal (0.337051). Logistic93 and time-pitch have the strongest held-out ranking here. E3 positive mean directions are 6/6 for RMS/Gaussian/logistic, 5/6 for onset-duration and 4/6 for time-pitch; several direction CIs cross zero. E2 has negative means in all six directions under RMS/Gaussian/event profiles, but logistic has five positive means. These definitions disagree materially; no objective is selected.
+All five ranking CI lower bounds clear 1/3, but onset-duration is marginal (0.337051). Logistic93 and time-pitch have the strongest held-out ranking here. E3 positive mean directions are 6/6 for RMS/Gaussian/logistic, 5/6 for onset-duration and 4/6 for time-pitch; several direction CIs cross zero. E2 has negative means in all six directions under RMS/Gaussian/event profiles, but logistic has five positive means. These definitions disagree materially; V2-04 did not select an objective. The user subsequently fixed the three V2-05 objectives.
 
 Saved-MIDI RMS agrees with historical E3 gain within 1e-10 for 287/300 outputs. Thirteen serialized identity fallbacks across seven works share V2-03 Skyline reselection discrepancies (max difference 0.002693). These remain explicit diagnostics; no selector/output/delta is repaired and no threshold is tuned. Source-self identity and serialized-fallback null rates remain distinct.
 
 RMS/Gaussian share the 67-component representation, but their predeclared variance policies differ: link function and variance handling are not isolated separately. Logistic93/historical RF share corpus/custom93 and are separate held-out evidence, not fully independent. Event profiles are all-piano adaptations using fixed four-quarter-beat windows; 117/150 sources contain non-4/4 meter and 65 have meter changes. Time-pitch ignores global transposition/duration; onset-duration has weak ranking and frequent negative E3 movement. No perceptual validity or fresh untouched confirmatory test is claimed.
 
-Review ranking/clustered uncertainty, spread/missingness, determinism, direction consistency, null/negative rates, agreement structure, leakage and interpretability together. No single scalar promotes a candidate; failed candidates remain diagnostic evidence. **Stop for V2-04 review; no V2-05, full E1c or push.**
+Review ranking/clustered uncertainty, spread/missingness, determinism, direction consistency, null/negative rates, agreement structure, leakage and interpretability together. No single scalar promotes a candidate; failed candidates remain diagnostic evidence. **V2-04 review boundary was satisfied by the explicit bounded V2-05 authorization; full E1c remains unstarted.**
 
-Gaussian uses the recorded train-only floor `max(target std, 0.05 * pooled training std, 1e-6)`; RMS retains its frozen std replacement. Logistic C=1/balanced/train-only variance/scaling/max_iter=5000 are recorded settings, with lbfgs an implementation choice. The duration-to-velocity reassociation synthetic counterexample shows why serialized RMS fallback movement can differ while custom93/all-note event profiles stay unchanged. All correlations/undefined cases and six directions remain in `style_verified/summary.json`. StyleRank/sequential extensions and V2-05 remain separate future decisions.
+Gaussian uses the recorded train-only floor `max(target std, 0.05 * pooled training std, 1e-6)`; RMS retains its frozen std replacement. Logistic C=1/balanced/train-only variance/scaling/max_iter=5000 are recorded settings, with lbfgs an implementation choice. The duration-to-velocity reassociation synthetic counterexample shows why serialized RMS fallback movement can differ while custom93/all-note event profiles stay unchanged. All correlations/undefined cases and six directions remain in `style_verified/summary.json`. StyleRank/sequential extensions and larger transfer experiments remain separate future decisions.
 
 ## Leakage-safe representation research
 
@@ -70,10 +70,20 @@ Matched MusicXML warrants a separate score-aware E1m investigation with musif/Pa
 
 Reuse current representation, extraction and search where appropriate. V2-01 adds `asset_paths.py`, `provenance.py` and `research_audit.py`; V2-03 adds only `content_metrics.py` and the explicit `content_audit.py` runner. V2-02 adds concrete custom93/musif `feature_backends` and the explicit `feature_feasibility.py` runner only. `style_metrics.py` and `style_audit.py` now serve only concrete V2-04 needs, with no registry or reverse imports. No `musicians_style.v2`, duplicated E1–E4 implementation, speculative refactor or reverse dependency from frozen packages.
 
-Future V2-05 starts only after E1d completion and another review. Prefer an external adapter/runner around frozen E3 to enforce zero transposition and exact protected pitches. Change shared E3 code only if external enforcement proves insufficient, with a separately reviewed minimal patch, unchanged old default and regression coverage. No objective candidates are selected for transfer now.
+The explicit user request authorized the completed bounded V2-05 after E1d review. Prefer an external adapter/runner around frozen E3 to enforce zero transposition and exact protected pitches. Change shared E3 code only if external enforcement proves insufficient, with a separately reviewed minimal patch, unchanged old default and regression coverage. The fixed V2-05 set is RMS67/Gaussian67/logistic93; no larger experiment is authorized.
 
 ## Evidence and test policy
 
 Historical plans/reports remain unchanged; STATUS.md, this context, the matrix, registry and roadmap are the current entry points. Local results and checkpoints are ignored by Git but remain evidence. Record unavailable or contradictory historical provenance instead of fabricating a historical code/environment snapshot.
 
 Default pytest runs fast unit/smoke checks against checkout source. Property tests use explicit development/full profiles; integration/regression workflows are explicit. Dataset-wide scientific checks produce fresh audit artifacts. V2-01 remains infrastructure verification; V2-03 adds content measurements only. V2-02 performs only the nine-sample feature pilot and explicit custom93 equivalence audit. V2-04 subsequently fitted only fixed fold-local style measures; no full E1c selection, transfer generation or change to frozen E1–E4/V2-01–03 protocols was performed.
+
+## V2-05 exploratory result
+
+| Objective | Exact observable policy | time_pitch positive / negative / null | time_pitch mean | Optimized mean |
+|---|---:|---|---:|---:|
+| rms67 | 6/6 | 1 / 5 / 0 | -0.022067 | 0.377232 |
+| gaussian67 | 6/6 | 2 / 4 / 0 | -0.026364 | 0.026629 |
+| logistic93 | 6/6 | 0 / 6 / 0 | -0.068912 | 0.139354 |
+
+Definitive artifacts: `experiments/research_v2_05_pilot_2026-10-05`. All comparisons are exploratory, with content ambiguity/evaluator dependence recorded separately. Optimized gains use different scales and cannot rank objectives across metrics. Stop for V2-05 review.
