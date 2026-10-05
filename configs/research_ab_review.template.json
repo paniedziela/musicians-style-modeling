@@ -1,0 +1,10 @@
+{
+  "stage": "track_a",
+  "approved_for_execution": false,
+  "input_metadata_hashes": null,
+  "backend_lock": null,
+  "continuation_thresholds": null,
+  "listening_design": null,
+  "external_bundle_sha256": null,
+  "objective_bundle_sha256": null
+}

@@ -1,7 +1,9 @@
-"""Explicit jSymbolic feasibility and train-only external evaluation workflows."""
+"""Explicit A+B workflows. Feasibility uses only nine declared outer-training MIDIs."""
 from __future__ import annotations
+from dataclasses import asdict
 import json
 from pathlib import Path
+import time
 
 import joblib
 import numpy as np
@@ -214,4 +216,136 @@ def evaluate_a(checkout,output,runtime,v205,review_path,configuration=None):
         external_bundle_sha256=sha256_file(output/'frozen_external.joblib'),
         limitations='descriptive conditional work bootstrap; attribution/movement is not musical validity; external evaluator must never be optimized')
     write_json(output/'real_scores.json',real); write_json(output/'summary.json',summary)
+    return summary
+
+
+def pilot_b(checkout,output,runtime,v205,external_path,review_path,configuration=None):
+    from .accompaniment_search import PitchSource,Logistic93Objective,local_search
+    from .content_metrics import observe_midi,measure_content
+    from .objective_pilot import PilotObjective,run_search,content_failures
+    from .e3.algorithm import SearchConfig
+    from .midi.printer import MidiPrettyPrinter
+    roots=resolve_asset_roots(checkout,configuration)
+    manifest,splits,source_root,hashes=inputs(roots)
+    protocol=reviewed(review_path,'track_b',hashes,runtime.lock)
+    # Verify the frozen fits BEFORE loading original validation sources or searching.
+    objective_path=v205/'fits/inner00.joblib'
+    if sha256_file(external_path)!=protocol['external_bundle_sha256'] or sha256_file(objective_path)!=protocol['objective_bundle_sha256']:
+        raise ValueError('reviewed frozen fit hash mismatch')
+    train,validation,forbidden,cohort=partition(manifest,splits,two_works=True)
+    objective_metadata=read(v205/'fits/inner00.json')
+    fields=('sample_id','group_id','sha256','composer')
+    identities=lambda rows:sorted(tuple(r[k] for k in fields) for r in rows)
+    if identities(objective_metadata['train'])!=identities(train) or identities(objective_metadata['forbidden'])!=identities(forbidden):
+        raise ValueError('objective fit partition mismatch')
+    external=joblib.load(external_path)
+    if external['backend_lock']!=runtime.lock or external['input_metadata_hashes']!=hashes:
+        raise ValueError('external fit backend/input mismatch')
+    ext_metadata=external['metadata']
+    if identities(ext_metadata['declared_train'])!=identities(train) or identities(ext_metadata['forbidden'])!=identities(forbidden):
+        raise ValueError('external fit partition mismatch')
+    frozen=joblib.load(objective_path)['style']
+    fresh(checkout,output,configuration)
+    write_json(output/'protocol.json',protocol)
+    write_json(output/'provenance.json',workflow_provenance(checkout))
+    composers=sorted({r['composer'] for r in cohort})
+    tasks=[dict(source=row,target=target,seed=seed,method=method) for row in cohort
+           for target in composers if target!=row['composer'] for seed in (1729,1730) for method in ('e3_zero','pitch_search')]
+    write_json(output/'pilot_manifest.json',dict(cohort=cohort,tasks=tasks,proposals=512,
+        external_bundle_sha256=sha256_file(external_path),objective_bundle_sha256=sha256_file(objective_path),
+        budget_note='E3 initial population includes identity: 32+16*30=512 proposals; 545 population/identity requests including cache. Pitch search 512 proposals/requests including identity. Mechanism comparison, not optimizer ablation.'))
+    source_bytes={r['sample_id']:verified_source(source_root,r).read_bytes() for r in cohort}
+    results=[]; identities_out=[]
+    for row in cohort:
+        sid=row['sample_id']; observation=observe_midi(source_bytes[sid])
+        ext_attempt=runtime.extract(verified_source(source_root,row),output/f'identity_{sid}')
+        affinities=score_external(external['external'],ext_metadata['schema'],{sid:ext_attempt},[sid])[0]
+        identities_out.append(dict(sample_id=sid,external=affinities))
+    source_scores={r['sample_id']:r['external'].get('affinities') for r in identities_out}
+    write_json(output/'identity_scores.json',identities_out)
+    write_json(output/'optimization_started.json',dict(fits_frozen=True,stage='development pilot',scientific_success_claim=False))
+    for index,task in enumerate(tasks):
+        row=task['source']; sid=row['sample_id']; target=task['target']; seed=task['seed']; method=task['method']
+        directory=output/f'task_{index:02d}'; directory.mkdir()
+        record=dict(source_id=sid,group_id=row['group_id'],composer=row['composer'],target=target,seed=seed,method=method,status='failed')
+        started=time.perf_counter()
+        try:
+            original=source_bytes[sid]; observation=observe_midi(original)
+            objective=Logistic93Objective(frozen['logistic'],target)
+            baseline=objective(original)
+            if method=='pitch_search':
+                source=PitchSource.from_bytes(original)
+                result=local_search(source,objective,seed=seed,proposals=512,changed_fraction=.20)
+                data=result.midi; history=result.history; accounting=result.accounting; gain=result.gain
+                write_json(directory/'notes.json',source.note_table(result.state))
+                record['state']=[dict(note_id=asdict(key),pitch=pitch) for key,pitch in result.state]
+            else:
+                inherited=PilotObjective(observation,frozen,'logistic93',target)
+                config=SearchConfig(population_size=32,generations=16,stagnation_generations=17)
+                result,telemetry=run_search(observation.piece,frozen['profiles'][target],inherited,config=config,seed=seed)
+                data=original if result.output==observation.piece else MidiPrettyPrinter().to_bytes(result.output)
+                history=result.history; gain=result.evaluation.style_gain
+                accounting=dict(proposals=512,evaluation_requests=545,unique_evaluations=result.unique_candidates,
+                    cache_hits=result.cache_hits,rejection_reasons=dict(inherited.rejections),telemetry=telemetry,stop_reason=result.stop_reason)
+                record['genome']=asdict(result.genome)
+            (directory/'output.mid').write_bytes(data)
+            content=measure_content(observation,observe_midi(data))
+            if content_failures(content): raise ValueError('selected output content failure')
+            if abs(objective(data)-baseline-gain)>1e-12: raise ValueError('saved optimized affinity mismatch')
+            write_json(directory/'history.json',history)
+            extraction_result=runtime.extract(directory/'output.mid',directory/'external')
+            external_score=score_external(external['external'],ext_metadata['schema'],{'output':extraction_result},['output'])[0]
+            before=source_scores[sid]; after=external_score.get('affinities')
+            external_move=movement(before,after,row['composer'],target) if before and after else None
+            record.update(status='completed',optimized_gain=gain,accounting=accounting,content=content,
+                identity=data==original,output_sha256=sha256_file(directory/'output.mid'),external=external_score,
+                external_movement=external_move,external_delta=external_move['delta'] if external_move else None)
+        except Exception as exc:
+            record['failure']=dict(type=type(exc).__name__,message=str(exc))
+        record['elapsed_seconds']=time.perf_counter()-started
+        results.append(record); write_json(directory/'result.json',record); write_json(output/'results.json',results)
+        print(f'{index+1}/48 {method} {record["status"]}',flush=True)
+    paired=[]
+    for row in cohort:
+        for target in composers:
+            if target==row['composer']: continue
+            for seed in (1729,1730):
+                pair={r['method']:r for r in results if r['source_id']==row['sample_id'] and r['target']==target and r['seed']==seed}
+                e3_delta=pair['e3_zero'].get('external_delta'); pitch_delta=pair['pitch_search'].get('external_delta')
+                paired.append(dict(sample_id=row['sample_id'],group_id=row['group_id'],composer=row['composer'],target=target,seed=seed,
+                    pitch_minus_e3=None if e3_delta is None or pitch_delta is None else pitch_delta-e3_delta))
+    write_json(output/'paired_comparison.json',paired)
+    summary=dict(runs=len(results),completed=sum(r['status']=='completed' for r in results),
+        paired_external_difference=cluster_summary(paired,'pitch_minus_e3'),
+        by_direction={a+'->'+b:{m:cluster_summary([r for r in results if r['composer']==a and r['target']==b and r['method']==m],'external_delta') for m in ('e3_zero','pitch_search')} for a in composers for b in composers if a!=b},
+        by_method={m:cluster_summary([r for r in results if r['method']==m],'external_delta') for m in ('e3_zero','pitch_search')},
+        listening_pending=True,automatic_promotion=False,interpretation='technical content tests and optimized classifier gains do not prove musical validity')
+    write_json(output/'summary.json',summary)
+    return summary
+
+
+def synthetic_verification(checkout,output,configuration=None):
+    from .accompaniment_search import PitchSource,local_search
+    from .midi.types import InternalRepr,NoteEvent,MetaEvent
+    from .midi.printer import MidiPrettyPrinter
+    from .midi.parser import MidiParser
+    fresh(checkout,output,configuration)
+    cases=[]
+    for index,(label,smf,channel,duration) in enumerate((('chords',1,0,240),('format0',0,7,120),('zero_duration',1,2,0))):
+        piece=InternalRepr(480,tuple(n for i in range(5) for n in (NoteEvent(i*480,channel,40+i*2,64,duration),NoteEvent(i*480,channel,80,90,300))),
+            (MetaEvent(0,'tempo',{'tempo':500000}),MetaEvent(0,'time_signature',{'numerator':3,'denominator':4})),smf)
+        original=MidiPrettyPrinter().to_bytes(piece); source=PitchSource.from_bytes(original)
+        objective=lambda data:float(sum(n.pitch for n in MidiParser().parse_bytes(data).notes))
+        result=local_search(source,objective,proposals=64)
+        repeated=local_search(source,objective,proposals=64)
+        if result.midi!=repeated.midi or result.history!=repeated.history: raise AssertionError('synthetic repeatability')
+        (output/(label+'_before.mid')).write_bytes(original); (output/(label+'_after.mid')).write_bytes(result.midi)
+        write_json(output/(label+'_notes.json'),source.note_table(result.state))
+        table=['| Protected | Tick | Duration | Velocity | Channel | Before | After |','|---|---:|---:|---:|---:|---:|---:|']
+        for row in source.note_table(result.state):
+            table.append('| '+' | '.join(str(row[k]) for k in ('protected','tick','duration','velocity','channel','before','after'))+' |')
+        (output/(label+'_notes.md')).write_text('\n'.join(table)+'\n',encoding='utf-8')
+        cases.append(dict(label=label,repeatability=True,accounting=result.accounting,notes=source.note_table(result.state)))
+    summary=dict(passed=True,synthetic_cases=cases,scientific_data_access=False,objective='synthetic arithmetic test double; no scientific style metric')
+    write_json(output/'summary.json',summary)
     return summary
