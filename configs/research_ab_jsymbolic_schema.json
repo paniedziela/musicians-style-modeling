@@ -1,0 +1,170 @@
+[
+  {
+    "name": "Basic Pitch Histogram",
+    "dimensions": 128
+  },
+  {
+    "name": "Pitch Class Histogram",
+    "dimensions": 12
+  },
+  {
+    "name": "Folded Fifths Pitch Class Histogram",
+    "dimensions": 12
+  },
+  {
+    "name": "Number of Pitches",
+    "dimensions": 1
+  },
+  {
+    "name": "Number of Pitch Classes",
+    "dimensions": 1
+  },
+  {
+    "name": "Range",
+    "dimensions": 1
+  },
+  {
+    "name": "Mean Pitch",
+    "dimensions": 1
+  },
+  {
+    "name": "Pitch Variability",
+    "dimensions": 1
+  },
+  {
+    "name": "Melodic Interval Histogram",
+    "dimensions": 128
+  },
+  {
+    "name": "Most Common Melodic Interval",
+    "dimensions": 1
+  },
+  {
+    "name": "Mean Melodic Interval",
+    "dimensions": 1
+  },
+  {
+    "name": "Amount of Arpeggiation",
+    "dimensions": 1
+  },
+  {
+    "name": "Repeated Notes",
+    "dimensions": 1
+  },
+  {
+    "name": "Chromatic Motion",
+    "dimensions": 1
+  },
+  {
+    "name": "Stepwise Motion",
+    "dimensions": 1
+  },
+  {
+    "name": "Direction of Melodic Motion",
+    "dimensions": 1
+  },
+  {
+    "name": "Average Length of Melodic Arcs",
+    "dimensions": 1
+  },
+  {
+    "name": "Average Interval Spanned by Melodic Arcs",
+    "dimensions": 1
+  },
+  {
+    "name": "Vertical Interval Histogram",
+    "dimensions": 128
+  },
+  {
+    "name": "Wrapped Vertical Interval Histogram",
+    "dimensions": 12
+  },
+  {
+    "name": "Chord Type Histogram",
+    "dimensions": 11
+  },
+  {
+    "name": "Average Number of Simultaneous Pitch Classes",
+    "dimensions": 1
+  },
+  {
+    "name": "Variability of Number of Simultaneous Pitch Classes",
+    "dimensions": 1
+  },
+  {
+    "name": "Average Number of Simultaneous Pitches",
+    "dimensions": 1
+  },
+  {
+    "name": "Variability of Number of Simultaneous Pitches",
+    "dimensions": 1
+  },
+  {
+    "name": "Vertical Dissonance Ratio",
+    "dimensions": 1
+  },
+  {
+    "name": "Chord Duration",
+    "dimensions": 1
+  },
+  {
+    "name": "Standard Triads",
+    "dimensions": 1
+  },
+  {
+    "name": "Seventh Chords",
+    "dimensions": 1
+  },
+  {
+    "name": "Complex Chords",
+    "dimensions": 1
+  },
+  {
+    "name": "Initial Time Signature",
+    "dimensions": 2
+  },
+  {
+    "name": "Metrical Diversity",
+    "dimensions": 1
+  },
+  {
+    "name": "Total Number of Notes",
+    "dimensions": 1
+  },
+  {
+    "name": "Note Density per Quarter Note",
+    "dimensions": 1
+  },
+  {
+    "name": "Rhythmic Value Histogram",
+    "dimensions": 12
+  },
+  {
+    "name": "Range of Rhythmic Values",
+    "dimensions": 1
+  },
+  {
+    "name": "Number of Different Rhythmic Values Present",
+    "dimensions": 1
+  },
+  {
+    "name": "Prevalence of Dotted Notes",
+    "dimensions": 1
+  },
+  {
+    "name": "Mean Rhythmic Value",
+    "dimensions": 1
+  },
+  {
+    "name": "Rhythmic Value Variability",
+    "dimensions": 1
+  },
+  {
+    "name": "Complete Rests Fraction",
+    "dimensions": 1
+  },
+  {
+    "name": "Beat Histogram Tempo Standardized",
+    "dimensions": 161
+  }
+]

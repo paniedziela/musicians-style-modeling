@@ -1,0 +1,26 @@
+{
+  "version": "2.2",
+  "distribution": "jSymbolic_2_2_user.zip",
+  "source": "https://sourceforge.net/projects/jmir/files/jSymbolic/jSymbolic%202.2/jSymbolic_2_2_user.zip/download",
+  "archive_sha256": "e1686a6bb1133cc21fb4678185d81e5e0a322b371ac713cbaf5fd9b69e2396cb",
+  "config": "configs/research_ab_jsymbolic.txt",
+  "config_sha256": "1eab6ccb9ad9cc63013457f07d07fb23e827755057de855aad6158d7fb37c43e",
+  "files": {
+    "jSymbolic2.jar": "b5cebf8dc8ce37be1e403e07886161a51dc8813f780b92be7a361cb6ade7a58b",
+    "lib/ACE.jar": "e5392d38bdca52041973e591e0c6be5936e2f67e13d608a31632780635b7afcc",
+    "lib/jMei2Midi-1.0-jar-with-dependencies.jar": "f63faa8a4d083a9ce8d8549023065a11247e721a6bae6aa1cb923dc812f14e1a",
+    "lib/resolver.jar": "47dcde8986019314ef78ae7280a94973a21d2ed95075a40a000b42da956429e1",
+    "lib/serializer.jar": "1456a09a4c710804c7cb6c0897cf323ae168d0c07ed12ca389f81f572f6d4391",
+    "lib/UtilityClasses.jar": "521035206dac98bab63d4c5625f554f65dc6139f2054f9365a7debcd9214fa00",
+    "lib/xercesImpl.jar": "175bbbd9def7a22a30e05f9c8db629c88fa5bdfc57d5658791901b54222abe1c",
+    "lib/xercesSamples.jar": "416229cd0f314e58929138d9765ed5037c25b73b04a8fa4cb706302488e96dad",
+    "lib/xml-apis.jar": "a840968176645684bb01aed376e067ab39614885f9eee44abe35a5f20ebe7fad"
+  },
+  "schema": "configs/research_ab_jsymbolic_schema.json",
+  "schema_sha256": "1741fd6c519549274048ff965bb3208d6eb239622f70432422a2dc60d359a9d9",
+  "java_options": [
+    "-Duser.language=en",
+    "-Duser.country=US",
+    "-Xmx2g"
+  ]
+}

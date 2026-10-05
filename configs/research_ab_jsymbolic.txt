@@ -1,0 +1,50 @@
+<features_to_extract>
+Basic Pitch Histogram
+Pitch Class Histogram
+Folded Fifths Pitch Class Histogram
+Number of Pitches
+Number of Pitch Classes
+Range
+Mean Pitch
+Pitch Variability
+Melodic Interval Histogram
+Most Common Melodic Interval
+Mean Melodic Interval
+Amount of Arpeggiation
+Repeated Notes
+Chromatic Motion
+Stepwise Motion
+Direction of Melodic Motion
+Average Length of Melodic Arcs
+Average Interval Spanned by Melodic Arcs
+Vertical Interval Histogram
+Wrapped Vertical Interval Histogram
+Chord Type Histogram
+Average Number of Simultaneous Pitch Classes
+Variability of Number of Simultaneous Pitch Classes
+Average Number of Simultaneous Pitches
+Variability of Number of Simultaneous Pitches
+Vertical Dissonance Ratio
+Chord Duration
+Standard Triads
+Seventh Chords
+Complex Chords
+Initial Time Signature
+Metrical Diversity
+Total Number of Notes
+Note Density per Quarter Note
+Rhythmic Value Histogram
+Range of Rhythmic Values
+Number of Different Rhythmic Values Present
+Prevalence of Dotted Notes
+Mean Rhythmic Value
+Rhythmic Value Variability
+Complete Rests Fraction
+Beat Histogram Tempo Standardized
+<jSymbolic_options>
+window_size=0.0
+window_overlap=0.0
+save_features_for_each_window=false
+save_overall_recording_features=true
+convert_to_arff=false
+convert_to_csv=true

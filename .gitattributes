@@ -2,3 +2,7 @@
 *.midi binary
 *.wav binary
 *.png binary
+
+# Preserve exact bytes of SHA256-pinned jSymbolic inputs across checkouts.
+configs/research_ab_jsymbolic.txt -text whitespace=cr-at-eol
+configs/research_ab_jsymbolic_schema.json -text whitespace=cr-at-eol
