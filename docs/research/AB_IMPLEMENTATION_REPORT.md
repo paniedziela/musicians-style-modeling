@@ -1,5 +1,10 @@
 # A+B implementation and verification report - 2026-10-05
 
+Current checkpoint (2026-10-06): Track A has completed under explicit subsequent
+user authorization. See [A completion](AB_A_COMPLETION.md) for results, frozen
+artifact and limitations. B remains unexecuted and unapproved. The implementation
+report and pre-execution review checkpoint below remain historical evidence.
+
 ## Review and commit checkpoint - 2026-10-05
 
 The user has now authorized committing/pushing the implementation and running

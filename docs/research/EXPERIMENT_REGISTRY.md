@@ -1,6 +1,6 @@
 # EXPERIMENT_REGISTRY — frozen evidence and proposed Research V2 experiments
 
-Current checkpoint (2026-10-05): A+B implementation reviewed and logically committed; [review/checkpoint report](AB_IMPLEMENTATION_REPORT.md). The user authorized a clean-tree branch push followed by Track A only under [its reviewed protocol](AB_A_PROTOCOL.md). jSymbolic feature/schema/model settings remain frozen. No B execution, outer-test source/features, main change, merge or rebase. Stop for review after A; historical entries below retain their original boundaries.
+Current checkpoint (2026-10-06): Track A external evaluation is complete after reviewed A+B commits and clean-branch push. jSymbolic work-balanced attribution 0.952381 versus custom93 0.783069; 457/638 external dimensions retained; 138/138 extraction successes; 9/18 output sign agreement. Exact external bundle provisionally frozen for attribution diagnostics, with substantial transformed-feature extrapolation and no musical-validity claim. See [A completion](AB_A_COMPLETION.md). No B execution, outer-test source/features, tuning, main change, merge or rebase. Stop for review after A. Historical entries below retain their original boundaries.
 
 Updated 2026-10-05. V2-05 fixed-budget objective pilot is complete: 18/18 runs completed; execution/preservation passed=True. Stop after V2-05 for review; no full E1c, outer-test evaluation, larger transfer experiment or push. V2-01 through V2-04 remain preserved. See [V2_05_COMPLETION.md](V2_05_COMPLETION.md) and [V2_05_PROTOCOL.md](V2_05_PROTOCOL.md).
 
