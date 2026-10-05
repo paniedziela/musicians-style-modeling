@@ -1,5 +1,7 @@
 # EXPERIMENT_REGISTRY — frozen evidence and proposed Research V2 experiments
 
+Current checkpoint (2026-10-05): A+B implementation reviewed and logically committed; [review/checkpoint report](AB_IMPLEMENTATION_REPORT.md). The user authorized a clean-tree branch push followed by Track A only under [its reviewed protocol](AB_A_PROTOCOL.md). jSymbolic feature/schema/model settings remain frozen. No B execution, outer-test source/features, main change, merge or rebase. Stop for review after A; historical entries below retain their original boundaries.
+
 Updated 2026-10-05. V2-05 fixed-budget objective pilot is complete: 18/18 runs completed; execution/preservation passed=True. Stop after V2-05 for review; no full E1c, outer-test evaluation, larger transfer experiment or push. V2-01 through V2-04 remain preserved. See [V2_05_COMPLETION.md](V2_05_COMPLETION.md) and [V2_05_PROTOCOL.md](V2_05_PROTOCOL.md).
 
 ## Frozen identities

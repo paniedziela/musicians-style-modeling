@@ -1,5 +1,7 @@
 # PAPER_IMPLEMENTATION_MATRIX — all 13 selected sources
 
+Current checkpoint (2026-10-05): A+B implementation reviewed and logically committed; [review/checkpoint report](AB_IMPLEMENTATION_REPORT.md). The user authorized a clean-tree branch push followed by Track A only under [its reviewed protocol](AB_A_PROTOCOL.md). jSymbolic feature/schema/model settings remain frozen. No B execution, outer-test source/features, main change, merge or rebase. Stop for review after A; historical entries below retain their original boundaries.
+
 Updated 2026-10-04. All selected PDFs were read in the preceding audit; this revision retains substantive findings, records their byte identities and completes the master prompt's 19 per-paper fields. PDF versions take precedence over stale bibliography labels. Availability means a repository/link was located in that audit, not that dependencies, weights or an end-to-end reproduction were verified. No paper implementation begins in V2-01. All locations below are future capability-oriented locations; none is a parallel Research V2 package.
 
 Priority is usefulness for this thesis. Estimates describe bounded adaptations using agent passes and measured/expected compute, not elapsed calendar time. Exact schedules/costs require a concrete task and environment. Literature results use their original protocols and are not directly comparable to E1 grouped-work scores.
