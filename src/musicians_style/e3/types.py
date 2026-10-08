@@ -2,54 +2,11 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
-from ..midi.types import InternalRepr, NoteEvent
-
-
-@dataclass(frozen=True, order=True)
-class NoteId:
-    """Stable identity of a note, including an ordinal for exact duplicates."""
-
-    tick: int
-    channel: int
-    pitch: int
-    velocity: int
-    duration_ticks: int
-    duplicate: int = 0
-
-
-@dataclass(frozen=True)
-class IndexedNote:
-    note_id: NoteId
-    note: NoteEvent
-    bar_index: int
-    melody: bool = False
-
-
-@dataclass(frozen=True)
-class Bar:
-    index: int
-    start_tick: int
-    end_tick: int
-    numerator: int
-    denominator: int
-
-    @property
-    def length_ticks(self) -> int:
-        return self.end_tick - self.start_tick
-
-
-@dataclass(frozen=True)
-class PieceStructure:
-    source: InternalRepr
-    bars: tuple[Bar, ...]
-    notes: tuple[IndexedNote, ...]
-    ambiguous_melody_onsets: tuple[int, ...] = field(default_factory=tuple)
-
-    @property
-    def melody_ids(self) -> frozenset[NoteId]:
-        return frozenset(item.note_id for item in self.notes if item.melody)
+from ..midi.types import InternalRepr
+# Retain old import paths, including for historical pickles.
+from ..midi.structure import Bar, IndexedNote, NoteId, PieceStructure
 
 
 @dataclass(frozen=True)

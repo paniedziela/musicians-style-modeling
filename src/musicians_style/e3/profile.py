@@ -10,7 +10,8 @@ from typing import Any, Mapping, Sequence
 import numpy as np
 
 from ..midi.types import InternalRepr
-from .structure import analyse_structure
+from ..midi.statistics import max_polyphony
+from ..midi.structure import analyse_structure
 
 GROUPS = ("pitch", "rhythm", "texture")
 DURATION_EDGES = np.asarray([0.0, 0.25, 0.5, 1.0, 2.0, 4.0, np.inf])
@@ -121,15 +122,6 @@ def build_target_profile(
         pitch_class_histogram=_normalise(matrix[:, slices[1]:slices[2]].sum(axis=0)),
         interval_histogram=_normalise(matrix[:, slices[2]:slices[3]].sum(axis=0)),
         chord_size_histogram=_normalise(matrix[:, slices[3]:slices[4]].sum(axis=0)),
-        max_polyphony=max(1, max(_max_polyphony(representations[str(row["sample_id"])]) for row in selected)),
+        max_polyphony=max(1, max(max_polyphony(representations[str(row["sample_id"])]) for row in selected)),
         train_sample_ids=ids, train_group_ids=group_ids, train_sha256=hashes, fingerprint=fingerprint,
     )
-
-
-def _max_polyphony(repr_: InternalRepr) -> int:
-    boundaries = [boundary for note in repr_.notes for boundary in ((note.tick, 1), (note.tick + note.duration_ticks, -1))]
-    active = maximum = 0
-    for _, change in sorted(boundaries, key=lambda item: (item[0], item[1])):
-        active += change
-        maximum = max(maximum, active)
-    return maximum

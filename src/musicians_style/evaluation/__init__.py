@@ -1,44 +1,8 @@
-"""Ewaluacja obiektywna i subiektywna (Wymagania 6.x, 7.x).
-
-Pakiet udostępnia:
-
-* :func:`euclidean` / :func:`mahalanobis` - funkcje odległości *Wektorów_Cech*
-  (zadanie 11.1, Wymagania 6.1, 6.2).
-* :class:`ObjectiveEvaluator` - ewaluacja obiektywna z testami statystycznymi
-  (zadanie 11.2, Wymagania 6.1-6.5) wraz z modelami danych raportu
-  (:class:`EvaluationReport`, :class:`StatTestResult`, :class:`DescriptiveStats`).
-"""
+"""Content and distance measures, with optional reporting loaded on demand."""
 
 from .distance import euclidean, mahalanobis, mahalanobis_from_inverse, prepare_mahalanobis
 from .content import content_metrics, semantic_midi_equal
-from .objective import (
-    DescriptiveStats,
-    EvaluationReport,
-    Metric,
-    ObjectiveEvaluator,
-    SeriesStats,
-    StatTestResult,
-)
-from .plots import (
-    generate_comparison_plots,
-    plot_interval_histogram,
-    plot_pitch_class_histogram,
-    plot_scalar_boxplots,
-)
-from .subjective import (
-    AudioRenderer,
-    FormQuestion,
-    FormSpec,
-    FormType,
-    ListeningPair,
-    ListeningSet,
-    MetricStats,
-    Response,
-    SignificanceResult,
-    SubjectiveEvaluator,
-    SubjectiveReport,
-    default_fluidsynth_renderer,
-)
+
 
 __all__ = [
     "euclidean",
@@ -70,3 +34,23 @@ __all__ = [
     "MetricStats",
     "SignificanceResult",
 ]
+
+
+def __getattr__(name: str):
+    # Preserve the package API without importing plots and statistical reports
+    # when an algorithm only needs a content metric or distance function.
+    if name in {"DescriptiveStats", "EvaluationReport", "Metric", "ObjectiveEvaluator",
+                "SeriesStats", "StatTestResult"}:
+        from . import objective as module
+    elif name in {"generate_comparison_plots", "plot_interval_histogram",
+                  "plot_pitch_class_histogram", "plot_scalar_boxplots"}:
+        from . import plots as module
+    elif name in {"AudioRenderer", "FormQuestion", "FormSpec", "FormType", "ListeningPair",
+                  "ListeningSet", "MetricStats", "Response", "SignificanceResult",
+                  "SubjectiveEvaluator", "SubjectiveReport", "default_fluidsynth_renderer"}:
+        from . import subjective as module
+    else:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+    value = getattr(module, name)
+    globals()[name] = value
+    return value

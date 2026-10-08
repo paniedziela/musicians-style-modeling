@@ -15,10 +15,8 @@ from typing import Any, Sequence
 import numpy as np
 
 from ..midi.types import InternalRepr
-
-
-def end_tick(piece: InternalRepr) -> int:
-    return max((note.tick + note.duration_ticks for note in piece.notes), default=0)
+from ..midi.structure import Bar, build_bars, piece_end_tick as end_tick
+from ..midi.statistics import max_polyphony, mean_polyphony, polyphony
 
 
 def semantic_midi_equal(left: InternalRepr, right: InternalRepr) -> bool:
@@ -82,39 +80,6 @@ def multiset_ngram_jaccard(left: Sequence[Any], right: Sequence[Any], n: int = 3
     return float(sum((first & second).values()) / union) if union else 1.0
 
 
-def max_polyphony(piece: InternalRepr) -> int:
-    boundaries = [
-        boundary
-        for note in piece.notes
-        if note.duration_ticks > 0
-        for boundary in ((note.tick, 1), (note.tick + note.duration_ticks, -1))
-    ]
-    active = maximum = 0
-    for _, change in sorted(boundaries, key=lambda item: (item[0], item[1])):
-        active += change
-        maximum = max(maximum, active)
-    return maximum
-
-
-def mean_polyphony(piece: InternalRepr) -> float:
-    boundaries = [
-        boundary
-        for note in piece.notes
-        if note.duration_ticks > 0
-        for boundary in ((note.tick, 1), (note.tick + note.duration_ticks, -1))
-    ]
-    if not boundaries:
-        return 0.0
-    active = area = 0
-    previous = min(tick for tick, _ in boundaries)
-    for tick, change in sorted(boundaries, key=lambda item: (item[0], item[1])):
-        area += active * (tick - previous)
-        active += change
-        previous = tick
-    span = max(tick for tick, _ in boundaries) - min(tick for tick, _ in boundaries)
-    return float(area / span) if span else 0.0
-
-
 def chroma_cosine(left: InternalRepr, right: InternalRepr) -> float:
     def chroma(piece: InternalRepr) -> np.ndarray:
         values = np.zeros(12, dtype=float)
@@ -129,50 +94,21 @@ def chroma_cosine(left: InternalRepr, right: InternalRepr) -> float:
     return float(np.dot(first, second) / denominator)
 
 
-def _bar_intervals(piece: InternalRepr) -> tuple[tuple[int, int], ...]:
-    """Return meter-aware bar intervals without depending on the E3 package."""
-    final_tick = end_tick(piece)
-    signatures: dict[int, tuple[int, int]] = {0: (4, 4)}
-    for event in sorted(piece.meta, key=lambda item: item.tick):
-        if event.kind == "time_signature":
-            signatures[int(event.tick)] = (
-                int(event.payload.get("numerator", 4)),
-                int(event.payload.get("denominator", 4)),
-            )
-    changes = [(tick, *signature) for tick, signature in sorted(signatures.items())]
-    bars: list[tuple[int, int]] = []
-    for position, (start, numerator, denominator) in enumerate(changes):
-        if start > final_tick:
-            break
-        segment_end = changes[position + 1][0] if position + 1 < len(changes) else final_tick
-        segment_end = min(segment_end, final_tick)
-        numerator_ticks = piece.ticks_per_beat * numerator * 4
-        if numerator <= 0 or denominator <= 0 or denominator & (denominator - 1) or numerator_ticks % denominator:
-            raise ValueError(f"invalid time signature at tick {start}")
-        bar_length = numerator_ticks // denominator
-        cursor = start
-        while cursor < segment_end:
-            boundary = min(cursor + bar_length, segment_end)
-            bars.append((cursor, boundary))
-            cursor = boundary
-    if not bars and final_tick == 0:
-        numerator, denominator = changes[0][1:]
-        bars.append((0, piece.ticks_per_beat * numerator * 4 // denominator))
-    return tuple(bars)
-
-
 def empty_bar_ratio(piece: InternalRepr) -> float:
-    bars = _bar_intervals(piece)
-    starts = tuple(start for start, _ in bars)
+    return _empty_bar_ratio(piece, build_bars(piece))
+
+
+def _empty_bar_ratio(piece: InternalRepr, bars: tuple[Bar, ...]) -> float:
+    starts = tuple(bar.start_tick for bar in bars)
     occupied: set[int] = set()
     for note in piece.notes:
         note_end = note.tick + note.duration_ticks
         if note_end <= note.tick:
             continue
         index = max(0, bisect_right(starts, note.tick) - 1)
-        while index < len(bars) and bars[index][0] < note_end:
-            bar_start, bar_end = bars[index]
-            if note.tick < bar_end and note_end > bar_start:
+        while index < len(bars) and bars[index].start_tick < note_end:
+            bar = bars[index]
+            if note.tick < bar.end_tick and note_end > bar.start_tick:
                 occupied.add(index)
             index += 1
     return (len(bars) - len(occupied)) / max(1, len(bars))
@@ -186,7 +122,9 @@ def content_metrics(
 ) -> dict[str, Any]:
     source_end, output_end = end_tick(source), end_tick(output)
     source_count, output_count = len(source.notes), len(output.notes)
-    source_bars, output_bars = _bar_intervals(source), _bar_intervals(output)
+    source_bars, output_bars = build_bars(source), build_bars(output)
+    source_mean, source_max = polyphony(source.notes)
+    output_mean, output_max = polyphony(output.notes)
     contour_similarity = multiset_ngram_jaccard(melody_contour(source), melody_contour(output))
     return {
         "nonempty": bool(output.notes),
@@ -197,18 +135,18 @@ def content_metrics(
         "bar_count_input": len(source_bars),
         "bar_count_output": len(output_bars),
         "bar_count_preserved": len(source_bars) == len(output_bars),
-        "empty_bar_ratio_input": empty_bar_ratio(source),
-        "empty_bar_ratio_output": empty_bar_ratio(output),
+        "empty_bar_ratio_input": _empty_bar_ratio(source, source_bars),
+        "empty_bar_ratio_output": _empty_bar_ratio(output, output_bars),
         "note_count_input": source_count,
         "note_count_output": output_count,
         "note_count_ratio": output_count / max(1, source_count),
         "onset_f1": onset_f1(source, output, onset_tolerance_beats),
         "melody_trigram_jaccard": contour_similarity,
         "chroma_cosine": chroma_cosine(source, output),
-        "max_polyphony_input": max_polyphony(source),
-        "max_polyphony_output": max_polyphony(output),
-        "mean_polyphony_input": mean_polyphony(source),
-        "mean_polyphony_output": mean_polyphony(output),
+        "max_polyphony_input": source_max,
+        "max_polyphony_output": output_max,
+        "mean_polyphony_input": source_mean,
+        "mean_polyphony_output": output_mean,
         "zero_duration_ratio_input": sum(n.duration_ticks <= 0 for n in source.notes) / max(1, source_count),
         "zero_duration_ratio_output": sum(n.duration_ticks <= 0 for n in output.notes) / max(1, output_count),
         "ticks_per_beat_preserved": source.ticks_per_beat == output.ticks_per_beat,

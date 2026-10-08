@@ -18,7 +18,7 @@ from ..midi.types import InternalRepr
 from ..midi.inference_io import CORE_EVENTS, performance_events, performance_warnings, export_performance
 from .algorithm import E3GeneticAlgorithm, SearchConfig
 from .profile import TargetProfile, build_target_profile, style_vector
-from .structure import analyse_structure
+from ..midi.structure import analyse_structure
 
 DEFAULT_PROFILES = Path("inference_workspace/profiles")
 SCHEMA = "e3-inference-1"

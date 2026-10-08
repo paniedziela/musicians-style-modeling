@@ -16,8 +16,9 @@ from sklearn.pipeline import Pipeline
 
 from .content_metrics import observe_midi, measure_content
 from .e3.objective import validate_constraints
-from .e3.structure import analyse_structure
-from .e3.types import NoteId, E3Genome
+from .midi.structure import analyse_structure
+from .midi.structure import NoteId
+from .e3.types import E3Genome
 from .features.composition import extract_composition_features
 from .evaluation.content import max_polyphony
 from .midi.parser import MidiParser

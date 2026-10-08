@@ -11,7 +11,7 @@ from ..midi.printer import MidiPrettyPrinter
 from ..midi.types import InternalRepr
 from ..evaluation.content import max_polyphony, semantic_midi_equal
 from .profile import GROUPS, TargetProfile, style_vector
-from .structure import analyse_structure, piece_end_tick
+from ..midi.structure import analyse_structure, piece_end_tick
 from .types import CandidateEvaluation, ConstraintReport, E3Genome, PieceStructure
 
 

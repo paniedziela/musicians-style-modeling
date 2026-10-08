@@ -9,7 +9,7 @@ import numpy as np
 
 from ..midi.types import InternalRepr, NoteEvent, event_key
 from .profile import DURATION_EDGES, TargetProfile
-from .structure import analyse_structure
+from ..midi.structure import analyse_structure
 from .types import E3Genome, PieceStructure
 
 

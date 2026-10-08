@@ -15,7 +15,7 @@ from typing import Any
 
 import mido
 
-from .e3.structure import analyse_structure
+from .midi.structure import analyse_structure
 from .evaluation.content import end_tick, max_polyphony, mean_polyphony
 from .midi.parser import MidiParser
 from .midi.types import InternalRepr

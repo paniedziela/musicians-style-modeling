@@ -10,6 +10,7 @@ from typing import Any, Iterable, Sequence
 import numpy as np
 
 from ..midi.types import InternalRepr, NoteEvent
+from ..midi.statistics import polyphony
 
 COMPOSITION_FEATURES_SCHEMA_VERSION = "e1.3.0"
 FEATURE_GROUPS = ("pitch", "melody", "rhythm", "texture", "harmony", "structure")
@@ -158,24 +159,6 @@ def _metrical_positions(
     return np.asarray(bar_positions), np.asarray(pulse_positions), np.asarray(pulse_lengths)
 
 
-def _polyphony(notes: Sequence[NoteEvent]) -> tuple[float, int]:
-    boundaries: list[tuple[int, int]] = []
-    for note in notes:
-        if note.duration_ticks > 0:
-            boundaries.extend(((note.tick, 1), (note.tick + note.duration_ticks, -1)))
-    if not boundaries:
-        return 0.0, 0
-    active = maximum = area = 0
-    previous = min(tick for tick, _ in boundaries)
-    for tick, change in sorted(boundaries, key=lambda item: (item[0], item[1])):
-        area += active * (tick - previous)
-        active += change
-        maximum = max(maximum, active)
-        previous = tick
-    span = max(tick for tick, _ in boundaries) - min(tick for tick, _ in boundaries)
-    return (float(area / span) if span else float(maximum), int(maximum))
-
-
 def _tonal_clarity(chroma: np.ndarray) -> float:
     # Krumhansl-Kessler key profiles; only the maximum correlation is retained.
     major = np.asarray([6.35, 2.23, 3.48, 2.33, 4.38, 4.09, 2.52, 5.19, 2.39, 3.66, 2.29, 2.88])
@@ -272,7 +255,7 @@ def extract_composition_features(repr_: InternalRepr) -> np.ndarray:
     ])
 
     chord_sizes = np.asarray([len(chord) for _, chord in onsets], dtype=float)
-    mean_polyphony, max_polyphony = _polyphony(notes)
+    mean_polyphony, max_polyphony = polyphony(notes)
     values.extend([
         mean_polyphony, float(max_polyphony), _ratio(chord_sizes >= 2),
         float(chord_sizes.mean()), float(chord_sizes.std()), float(chord_sizes.max()),
