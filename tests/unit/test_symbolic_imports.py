@@ -13,12 +13,15 @@ def test_content_analysis_does_not_import_experiments_or_reporting():
     code = """
 import sys
 from musicians_style.content_metrics import measure_content, observe_midi
+from musicians_style.accompaniment_search import PitchSource, local_search
 from musicians_style.midi.printer import MidiPrettyPrinter
 from musicians_style.midi.types import InternalRepr, NoteEvent
 
-piece = InternalRepr(480, (NoteEvent(0, 0, 60, 80, 480),))
+piece = InternalRepr(480, (NoteEvent(0, 0, 40, 80, 480), NoteEvent(0, 0, 80, 80, 480)))
 observation = observe_midi(MidiPrettyPrinter().to_bytes(piece))
 assert measure_content(observation, observation)['v2_exact_pitch']['status'] == 'passed'
+source = PitchSource.from_bytes(MidiPrettyPrinter().to_bytes(piece))
+assert local_search(source, len, proposals=8, changed_fraction=1).midi
 for name in ('musicians_style.e1', 'musicians_style.e3', 'musicians_style.e4',
              'matplotlib', 'sklearn', 'scipy', 'torch'):
     assert name not in sys.modules, name

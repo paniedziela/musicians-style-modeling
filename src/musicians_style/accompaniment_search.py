@@ -8,21 +8,17 @@ import io
 import math
 import random
 import time
-from types import SimpleNamespace
+from typing import TYPE_CHECKING
 
 import mido
-import numpy as np
-from sklearn.pipeline import Pipeline
 
 from .content_metrics import observe_midi, measure_content
-from .e3.objective import validate_constraints
-from .midi.structure import analyse_structure
-from .midi.structure import NoteId
-from .e3.types import E3Genome
+from .midi.structure import NoteId, analyse_structure
 from .features.composition import extract_composition_features
-from .evaluation.content import max_polyphony
 from .midi.parser import MidiParser
-from .style_metrics import LOGISTIC
+
+if TYPE_CHECKING:
+    from sklearn.pipeline import Pipeline
 
 
 class MoveRejected(ValueError):
@@ -160,17 +156,14 @@ class PitchSource:
                     allowed['note'] = changed_positions[track, ordinal]
                 if allowed != right:
                     raise MoveRejected('raw_message_invariant')
-        piece = MidiParser().parse_bytes(data)
+        observation = observe_midi(data)
+        piece = observation.piece
         if Counter(piece.notes) != Counter(n for _, n in expected):
             raise MoveRejected('roundtrip_note_lineage')
-        source = self.piece
-        constraints = validate_constraints(source, piece,
-            SimpleNamespace(max_polyphony=max_polyphony(source)), E3Genome(),
-            source_structure=analyse_structure(source), roundtrip=False)
-        if not constraints.feasible:
-            raise MoveRejected('e3_constraints:'+','.join(constraints.violations))
+        # Raw-message equality and the expected note multiset preserve timing,
+        # count, polyphony and metadata; no E3 genome/profile checks are needed.
         # Original on/off positions already give stronger protection; V2-03 is additional evidence.
-        content = measure_content(observe_midi(self.original), observe_midi(data))
+        content = measure_content(observe_midi(self.original), observation)
         exact = content['v2_exact_pitch']
         if exact['event_identity_status'] != 'passed' or exact['duration_status'] in ('failed','undefined'):
             raise MoveRejected('protected_content')
@@ -196,6 +189,10 @@ class PitchSource:
 class Logistic93Objective:
     """Read-only DEVELOPMENT target probability; no fit, external metric or E3 scorer."""
     def __init__(self, fitted: Pipeline, target: str):
+        # Classifier dependencies are optional for pitch moves and callable search.
+        from sklearn.pipeline import Pipeline
+        from .style_metrics import LOGISTIC
+
         if not isinstance(fitted, Pipeline) or [name for name,_ in fitted.steps] != ['variance','scale','model']:
             raise ValueError('frozen logistic93 pipeline required')
         if fitted.n_features_in_ != 93 or any(fitted[-1].get_params()[k] != v for k,v in LOGISTIC.items()):
@@ -208,7 +205,7 @@ class Logistic93Objective:
     def __call__(self, data: bytes):
         vector = extract_composition_features(MidiParser().parse_bytes(data))
         value = float(self._fitted.predict_proba(vector.reshape(1,-1))[0,self._index])
-        if not np.isfinite(value):
+        if not math.isfinite(value):
             raise ValueError('undefined logistic93 affinity')
         return value
 
@@ -224,56 +221,71 @@ class SearchResult:
 
 
 def local_search(source: PitchSource, objective, *, seed=1729, proposals=512, changed_fraction=.20):
-    """Budget includes identity; full memory, strict improvement, stable original IDs."""
-    if isinstance(proposals,bool) or not isinstance(proposals,int) or proposals < 1:
-        raise ValueError('positive proposal budget required')
+    """Search pitch moves with a callable MIDI-bytes objective.
+
+    The budget includes identity. Only feasible, unvisited states are scored;
+    only strict improvements are accepted. Expected move rejections are counted,
+    while programming errors and invalid objective scores propagate to callers.
+    """
+    if isinstance(proposals, bool) or not isinstance(proposals, int) or proposals < 1:
+        raise ValueError("positive proposal budget required")
     # Validate configuration even if there are no accompaniment notes.
-    source.serialize((),changed_fraction=changed_fraction)
+    source.serialize((), changed_fraction=changed_fraction)
     started = time.perf_counter()
     baseline = float(objective(source.original))
     if not math.isfinite(baseline):
-        raise ValueError('nonfinite identity affinity')
+        raise ValueError("nonfinite identity affinity")
     rng = random.Random(seed)
     state, best, data = (), baseline, source.original
+    accompaniment = source.accompaniment
     visited = {()}
-    history = [dict(proposal=0,status='identity',affinity=baseline,state=())]
-    counts = Counter(proposals=1,unique_evaluations=1,accepted=0,cache_hits=0,rejections=0)
+    history = [dict(proposal=0, status="identity", affinity=baseline, state=())]
+    counts = Counter(proposals=1, unique_evaluations=1, accepted=0, cache_hits=0, rejections=0)
     reasons = Counter()
-    for index in range(1,proposals):
-        counts['proposals'] += 1
-        if not source.accompaniment:
-            counts['rejections'] += 1
-            reasons['no_accompaniment'] += 1
-            history.append(dict(proposal=index,status='rejected',reason='no_accompaniment'))
+    for index in range(1, proposals):
+        counts["proposals"] += 1
+        if not accompaniment:
+            counts["rejections"] += 1
+            reasons["no_accompaniment"] += 1
+            history.append(dict(proposal=index, status="rejected", reason="no_accompaniment"))
             continue
-        key = rng.choice(source.accompaniment)
-        pitch = key.pitch+rng.choice((-4,-3,-2,-1,0,1,2,3,4))
+        key = rng.choice(accompaniment)
+        pitch = key.pitch + rng.choice((-4, -3, -2, -1, 0, 1, 2, 3, 4))
         raw = dict(state)
         raw[key] = pitch
         # Rejected valid-map states also enter visited memory.
         try:
             candidate = source.canonical(raw)
             if candidate in visited:
-                counts['cache_hits'] += 1
-                history.append(dict(proposal=index,status='visited'))
+                counts["cache_hits"] += 1
+                history.append(dict(proposal=index, status="visited"))
                 continue
             visited.add(candidate)
-            output = source.serialize(candidate,changed_fraction=changed_fraction)
-            value = float(objective(output))
-            if not math.isfinite(value):
-                raise ValueError('nonfinite affinity')
-            counts['unique_evaluations'] += 1
-            accepted = value > best+1e-12
-            if accepted:
-                state,best,data = candidate,value,output
-                counts['accepted'] += 1
-            history.append(dict(proposal=index,status='accepted' if accepted else 'nonimproving',
-                                affinity=value,state=[dict(note_id=asdict(key),pitch=pitch) for key,pitch in candidate]))
-        except Exception as exc:
-            counts['rejections'] += 1
-            reason = str(exc) if isinstance(exc,MoveRejected) else type(exc).__name__+':'+str(exc)
+            output = source.serialize(candidate, changed_fraction=changed_fraction)
+        except MoveRejected as exc:
+            counts["rejections"] += 1
+            reason = str(exc)
             reasons[reason] += 1
-            history.append(dict(proposal=index,status='rejected',reason=reason))
-    return SearchResult(state,data,best,best-baseline,tuple(history),dict(counts,
-        rejection_reasons=dict(reasons),visited_states=len(visited),seed=seed,
-        stop_reason='proposal_budget',runtime_seconds=time.perf_counter()-started))
+            history.append(dict(proposal=index, status="rejected", reason=reason))
+            continue
+
+        value = float(objective(output))
+        if not math.isfinite(value):
+            raise ValueError("nonfinite affinity")
+        counts["unique_evaluations"] += 1
+        accepted = value > best + 1e-12
+        if accepted:
+            state, best, data = candidate, value, output
+            counts["accepted"] += 1
+        history.append(dict(
+            proposal=index,
+            status="accepted" if accepted else "nonimproving",
+            affinity=value,
+            state=[dict(note_id=asdict(key), pitch=pitch) for key, pitch in candidate],
+        ))
+    return SearchResult(
+        state, data, best, best - baseline, tuple(history),
+        dict(counts, rejection_reasons=dict(reasons), visited_states=len(visited),
+             seed=seed, stop_reason="proposal_budget",
+             runtime_seconds=time.perf_counter() - started),
+    )

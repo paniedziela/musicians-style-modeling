@@ -23,6 +23,46 @@ from musicians_style.e1.composition_features import extract_composition_features
 from musicians_style.style_metrics import LOGISTIC
 
 
+@pytest.mark.parametrize("score", [float("nan"), float("inf"), -float("inf")])
+def test_search_propagates_nonfinite_candidate_scores(score):
+    source = PitchSource.from_bytes(synthetic())
+    calls = []
+
+    def objective(data):
+        calls.append(data)
+        return 0.0 if len(calls) == 1 else score
+
+    with pytest.raises(ValueError, match="nonfinite affinity"):
+        local_search(source, objective, proposals=64)
+    assert len(calls) == 2
+
+
+def test_search_propagates_objective_errors():
+    source = PitchSource.from_bytes(synthetic())
+
+    def objective(data):
+        if data != source.original:
+            raise RuntimeError("broken objective")
+        return 0.0
+
+    with pytest.raises(RuntimeError, match="broken objective"):
+        local_search(source, objective, proposals=64)
+
+
+def test_search_propagates_unexpected_serialization_errors(monkeypatch):
+    source = PitchSource.from_bytes(synthetic())
+    original = PitchSource.serialize
+
+    def serialize(self, pitches=(), **kwargs):
+        if pitches:
+            raise RuntimeError("broken serializer")
+        return original(self, pitches, **kwargs)
+
+    monkeypatch.setattr(PitchSource, "serialize", serialize)
+    with pytest.raises(RuntimeError, match="broken serializer"):
+        local_search(source, len, proposals=64)
+
+
 def synthetic(pitches=(40,42,44,46,48), *, smf=1, channel=0, zero=False):
     notes=[]
     for i,pitch in enumerate(pitches):
@@ -206,13 +246,16 @@ def test_stable_ids_and_tie_mask_use_original_only():
     assert len(left.melody_ids)==1 and left.ambiguous_melody_onsets==(0,)
 
 
-def test_serialization_failure_is_rejection_and_identity_stays_original(monkeypatch):
-    source=PitchSource.from_bytes(synthetic())
-    def fail(*args,**kwargs): raise ValueError('injected serializer failure')
-    monkeypatch.setattr('musicians_style.accompaniment_search.mido.MidiFile.save',fail)
-    result=local_search(source,lambda data:1.,proposals=16)
-    assert result.state==() and result.midi==source.original
-    assert any('serializer failure' in row.get('reason','') for row in result.history)
+def test_serialization_failure_propagates_and_identity_stays_original(monkeypatch):
+    source = PitchSource.from_bytes(synthetic())
+
+    def fail(*args, **kwargs):
+        raise ValueError("injected serializer failure")
+
+    monkeypatch.setattr("musicians_style.accompaniment_search.mido.MidiFile.save", fail)
+    with pytest.raises(ValueError, match="injected serializer failure"):
+        local_search(source, lambda data: 1.0, proposals=16)
+    assert source.serialize() == source.original
 
 
 def test_overlap_new_pitch_against_another_track_rejected():
