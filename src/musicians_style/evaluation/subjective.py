@@ -412,6 +412,11 @@ def default_fluidsynth_renderer(
         RuntimeError: gdy ``pretty_midi`` nie jest dostępny.
         FileNotFoundError: gdy podany *SoundFont* nie istnieje.
     """
+    if soundfont is None or not Path(soundfont).exists():
+        raise FileNotFoundError(
+            f"SoundFont wymagany do syntezy FluidSynth nie istnieje: {soundfont!r}."
+        )
+
     try:
         import pretty_midi  # lazy import - patrz docstring modułu
     except ImportError as exc:  # pragma: no cover - zależne od środowiska
@@ -419,11 +424,6 @@ def default_fluidsynth_renderer(
             "Renderowanie audio wymaga pakietu 'pretty_midi' oraz 'pyFluidSynth'. "
             "Zainstaluj zależności lub wstrzyknij własny renderer."
         ) from exc
-
-    if soundfont is None or not Path(soundfont).exists():
-        raise FileNotFoundError(
-            f"SoundFont wymagany do syntezy FluidSynth nie istnieje: {soundfont!r}."
-        )
 
     pm = pretty_midi.PrettyMIDI(str(midi_path))
     # pretty_midi.fluidsynth() leniwie korzysta z biblioteki fluidsynth.
