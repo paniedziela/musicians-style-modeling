@@ -65,7 +65,20 @@ class E3GeneticAlgorithm:
         seed: int,
         objective: E3Objective | None = None,
         progress: Callable[[dict[str, object]], None] | None = None,
+        canonicalize: Callable[[E3Genome], E3Genome] | None = None,
+        transform: Callable[..., InternalRepr] | None = None,
     ) -> SearchResult:
+        """Run the search with optional genome and transformation callbacks.
+
+        ``canonicalize`` replaces the default clamp before cache lookup and
+        when creating offspring. ``transform`` receives ``source``, ``genome``,
+        ``profile``, and keyword arguments ``seed`` and ``structure``; it runs
+        only on genome-cache misses. Callbacks must be deterministic for caching.
+        """
+        if canonicalize is None:
+            canonicalize = _clamp
+        if transform is None:
+            transform = apply_transformation
         rng = np.random.default_rng(seed)
         objective = objective or E3Objective(source, profile)
         population = [IDENTITY_GENOME]
@@ -80,11 +93,11 @@ class E3GeneticAlgorithm:
 
         def evaluate(genome: E3Genome) -> CandidateEvaluation:
             nonlocal cache_hits
-            genome = _clamp(genome)
+            genome = canonicalize(genome)
             if genome in genome_cache:
                 cache_hits += 1
                 return genome_cache[genome]
-            output = apply_transformation(source, genome, profile, seed=seed, structure=objective.structure)
+            output = transform(source, genome, profile, seed=seed, structure=objective.structure)
             if output in output_cache:
                 cache_hits += 1
                 cached = output_cache[output]
@@ -139,7 +152,7 @@ class E3GeneticAlgorithm:
                 right_values = list(asdict(right).values())
                 values = [left_values[i] if mask[i] else right_values[i] for i in range(5)]
                 values = [value + float(rng.normal(0, sigma)) for value, sigma in zip(values, self.config.mutation_sigma)]
-                next_population.append(_clamp(E3Genome(*values)))
+                next_population.append(canonicalize(E3Genome(*values)))
             population = next_population
 
         # Identity is the explicit safe fallback, including when all candidates

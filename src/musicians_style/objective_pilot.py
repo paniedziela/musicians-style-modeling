@@ -1,4 +1,4 @@
-"""Bounded V2-05 pilot; isolated bindings to the unchanged frozen E3 engine."""
+"""Bounded V2-05 pilot using explicit callbacks in the E3 engine."""
 
 from __future__ import annotations
 
@@ -8,7 +8,6 @@ from datetime import datetime, timezone
 import json
 from pathlib import Path
 import time
-from types import FunctionType
 
 import joblib
 import numpy as np
@@ -42,7 +41,7 @@ PROTOCOL = {
     "budget": {"initial_population": 32, "new_offspring": 60 * 30,
                "proposal_budget": 32 + 60 * 30, "evaluation_requests_including_elites_and_identity": 1 + 61 * 32,
                "history_rows": 61, "actual_unique_evaluations": "unique transformed representations evaluated, including infeasible candidates"},
-    "adapter": "execute original E3 run code with a private globals copy binding _clamp to frozen clamp followed by transpose=0; no shared monkeypatch or frozen source edit; all five RNG draws retained",
+    "adapter": "execute E3 with explicit canonicalization and transformation callbacks; frozen clamp followed by transpose=0; no shared monkeypatch; all five RNG draws retained",
     "content": "original protected absolute pitches/onsets/offs/identifiable durations; zero transpose before every transformation/evaluation; same-tick order diagnostic",
     "constraints": "frozen E3 constraints plus V2-03 serialized event/content/structural checks; ambiguous overlapping durations reported, never labelled proven exact",
     "objective_scoring": "higher-is-better target affinity on saved-MIDI representation minus original source affinity; identity uses original bytes",
@@ -134,7 +133,7 @@ class PilotObjective:
 
 
 def run_search(source, profile, objective, config=SEARCH, seed=SEED, progress=None):
-    """Rebind only canonicalization in a private function; frozen globals remain untouched."""
+    """Disable transposition and collect telemetry through per-run callbacks."""
     telemetry = Counter()
     frozen_clamp = algorithm._clamp
     frozen_transform = algorithm.apply_transformation
@@ -150,14 +149,13 @@ def run_search(source, profile, objective, config=SEARCH, seed=SEED, progress=No
         telemetry["transformations"] += 1
         return frozen_transform(source, genome, profile, **kwargs)
 
-    original = E3GeneticAlgorithm.run
-    bindings = dict(original.__globals__, _clamp=canonical, apply_transformation=transform)
-    bound = FunctionType(original.__code__, bindings, original.__name__, original.__defaults__, original.__closure__)
-    bound.__kwdefaults__ = original.__kwdefaults__
-    result = bound(E3GeneticAlgorithm(config), source, profile, seed=seed, objective=objective, progress=progress)
-    if algorithm._clamp is not frozen_clamp or algorithm.apply_transformation is not frozen_transform:
-        raise AssertionError("frozen engine globals changed")
-    if result.genome.transpose_semitones or any(r["best_genome"]["transpose_semitones"] for r in result.history):
+    result = E3GeneticAlgorithm(config).run(
+        source, profile, seed=seed, objective=objective, progress=progress,
+        canonicalize=canonical, transform=transform,
+    )
+    if result.genome.transpose_semitones or any(
+        row["best_genome"]["transpose_semitones"] for row in result.history
+    ):
         raise AssertionError("nonzero saved/history genome")
     return result, dict(telemetry)
 
