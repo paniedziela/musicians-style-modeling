@@ -14,7 +14,7 @@ from scipy.stats import pearsonr, spearmanr, rankdata
 
 from .asset_paths import resolve_asset_roots
 from .content_audit import frozen_files
-from .e1.composition_features import FEATURE_SPECS, COMPOSITION_FEATURES_SCHEMA_VERSION, extract_composition_features
+from .features.composition import FEATURE_SPECS, COMPOSITION_FEATURES_SCHEMA_VERSION, extract_composition_features
 from .e3.profile import style_vector
 from .midi.parser import MidiParser
 from .provenance import collect_provenance, fingerprint, sha256_file, write_json

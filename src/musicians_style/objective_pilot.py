@@ -21,7 +21,7 @@ from .e3.objective import validate_constraints
 from .e3.profile import style_vector
 from .e3.structure import analyse_structure
 from .e3.types import CandidateEvaluation, E3Genome
-from .e1.composition_features import extract_composition_features
+from .features.composition import extract_composition_features
 from .asset_paths import resolve_asset_roots
 from .content_metrics import CONTRACT as CONTENT_CONTRACT, measure_content, observe_midi
 from .midi.printer import MidiPrettyPrinter

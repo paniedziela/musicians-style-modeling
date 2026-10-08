@@ -29,7 +29,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.pipeline import Pipeline
 
 from ..config import GAConfig
-from ..e1.composition_features import (
+from ..features.composition import (
     COMPOSITION_FEATURES_SCHEMA_VERSION,
     FEATURE_GROUPS,
     FEATURE_SPECS,

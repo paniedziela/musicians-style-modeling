@@ -18,7 +18,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.feature_selection import VarianceThreshold
 from sklearn.pipeline import Pipeline
 
-from ..e1.composition_features import extract_composition_features
+from ..features.composition import extract_composition_features
 from ..midi.parser import MidiParser
 from ..midi.printer import MidiPrettyPrinter
 from .algorithm import E3GeneticAlgorithm, SearchConfig

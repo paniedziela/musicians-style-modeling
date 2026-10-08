@@ -11,7 +11,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.feature_selection import VarianceThreshold
 from sklearn.pipeline import Pipeline
 
-from ..e1.composition_features import FEATURE_SPECS, extract_composition_features
+from ..features.composition import FEATURE_SPECS, extract_composition_features
 from ..evaluation.content import content_metrics
 from ..midi.types import InternalRepr
 from .dataset import COMPOSERS, PieceSegments

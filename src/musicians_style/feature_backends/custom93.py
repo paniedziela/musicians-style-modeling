@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from ..e1.composition_features import (
+from ..features.composition import (
     COMPOSITION_FEATURES_SCHEMA_VERSION, FEATURE_SPECS, extract_composition_features,
 )
 from ..midi.parser import MidiParser
